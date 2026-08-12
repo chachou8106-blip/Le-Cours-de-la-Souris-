@@ -26,7 +26,7 @@ contract Deploy is Script {
     function run() external {
         // Vérifier que le déploiement est autorisé
         require(
-            keccak256(abi.encodePacked(DEPLOY_ENABLED)) != keccak256(abi.encodePacked("false")),
+            DEPLOY_ENABLED == true,
             "Deploy: Deployment is disabled. Set DEPLOY_ENABLED=true to enable."
         );
         
