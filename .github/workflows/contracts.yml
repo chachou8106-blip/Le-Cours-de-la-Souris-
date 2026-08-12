@@ -40,7 +40,7 @@ jobs:
           forge coverage --report lcov
       
       - name: Upload coverage report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: forge-coverage
           path: packages/contracts/coverage/
