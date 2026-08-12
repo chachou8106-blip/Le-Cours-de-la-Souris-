@@ -56,31 +56,40 @@ export const HomePage: React.FC = () => {
           </Link>
         </Card>
 
+        <Card title="🎁 Récompenses" subtitle="Boutique CROQ">
+          <p>Utilisez vos CROQ Credits pour acheter des récompenses.</p>
+          <Link to="/rewards" className="text-[var(--primary)] hover:underline mt-2 inline-block">
+            Voir la boutique →
+          </Link>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <Card title="🪙 CROQ Credits" subtitle="Récompenses et économie">
           <p>Découvrez comment gagner et utiliser des CROQ Credits.</p>
           <Link to="/croq" className="text-[var(--primary)] hover:underline mt-2 inline-block">
             En savoir plus →
           </Link>
         </Card>
-      </div>
 
-      <Card title="🤝 Partenariats" className="mb-8">
-        <p className="mb-2">Découvrez nos partenaires :</p>
-        <div className="flex flex-wrap gap-2">
-          <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
-            Amazon (zencheztoi-21)
-          </span>
-          <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
-            Colgate
-          </span>
-          <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
-            Oral-B
-          </span>
-          <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
-            Lego
-          </span>
-        </div>
-      </Card>
+        <Card title="🤝 Partenariats" className="">
+          <p className="mb-2">Découvrez nos partenaires :</p>
+          <div className="flex flex-wrap gap-2">
+            <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
+              Amazon (zencheztoi-21)
+            </span>
+            <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
+              Colgate
+            </span>
+            <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
+              Oral-B
+            </span>
+            <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
+              Lego
+            </span>
+          </div>
+        </Card>
+      </div>
 
       <Card title="⚠️ Avertissement" className="mb-8">
         <p className="text-sm">
@@ -92,6 +101,12 @@ export const HomePage: React.FC = () => {
           <ul className="list-disc pl-5 mt-2">
             <li><strong>Cours Officiel</strong> : Coût réel d'une extraction dentaire (sources : associations dentaires).</li>
             <li><strong>Cours Communautaire</strong> : Montants déclarés par les utilisateurs pour la Petite Souris.</li>
+          </ul>
+          <br />
+          <strong>Exemple pour la France :</strong>
+          <ul className="list-disc pl-5 mt-2">
+            <li><strong>Cours Officiel</strong> : ~50€ (extraction dentaire chez un dentiste).</li>
+            <li><strong>Cours Communautaire</strong> : ~5€ (montant laissé par la Petite Souris).</li>
           </ul>
         </p>
       </Card>

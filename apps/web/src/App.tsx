@@ -7,6 +7,7 @@ import GamesPage from './pages/Games';
 import CROQPage from './pages/CROQ';
 import OfficialRatesPage from './pages/OfficialRates/OfficialRatesPage';
 import ReportsPage from './pages/Reports/ReportsPage';
+import RewardsPage from './pages/Rewards/RewardsPage';
 import AdminLayout from './pages/Admin/Layout';
 import LegalLayout from './pages/Legal/Layout';
 import DailyHumor from './features/daily-humor/DailyHumor';
@@ -24,6 +25,7 @@ function App() {
         <Route path="/croq" element={<CROQPage />} />
         <Route path="/official-rates" element={<OfficialRatesPage />} />
         <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/rewards" element={<RewardsPage />} />
         <Route path="/admin/*" element={<AdminLayout />} />
         <Route path="/legal/*" element={<LegalLayout />} />
       </Routes>
