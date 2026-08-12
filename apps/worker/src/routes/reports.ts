@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { insertPayoutReport } from '../bindings/d1';
 import { turnstileMiddleware } from '../middleware/turnstile';
+import { rateLimitMiddleware } from '../middleware/rate-limit';
 import { Env } from '../bindings/d1';
 
 const reportsRouter = new Hono<{ Bindings: Env }>();
@@ -16,22 +17,54 @@ const CreateReportSchema = z.object({
   ageRange: z.string().optional(),
   tradition: z.string().optional(),
   comment: z.string().max(500).optional(),
+  turnstileToken: z.string(),
 });
 
 // Soumettre un nouveau rapport
-reportsRouter.post('/', turnstileMiddleware, async (c) => {
+reportsRouter.post('/', turnstileMiddleware, rateLimitMiddleware, async (c) => {
   try {
     const body = await c.req.json();
     const validatedData = CreateReportSchema.parse(body);
 
+    // Vérifier que le pays existe
+    const countryQuery = 'SELECT * FROM countries WHERE iso2 = ?';
+    const countryResult = await c.env.DB.prepare(countryQuery)
+      .bind(validatedData.countryIso2)
+      .all();
+
+    if (countryResult.results.length === 0) {
+      return c.json(
+        {
+          success: false,
+          error: 'Pays non trouvé',
+          timestamp: new Date().toISOString(),
+        },
+        400
+      );
+    }
+
     // Insérer le rapport en base de données
-    await insertPayoutReport(c.env.DB, validatedData);
+    await insertPayoutReport(c.env.DB, {
+      countryIso2: validatedData.countryIso2,
+      amount: validatedData.amount,
+      currency: validatedData.currency,
+      month: validatedData.month,
+      year: validatedData.year,
+      ageRange: validatedData.ageRange,
+      tradition: validatedData.tradition,
+      comment: validatedData.comment,
+    });
 
     return c.json(
       {
         success: true,
-        message: 'Rapport soumis avec succès ! Il sera validé sous 24-48h.',
-        data: validatedData,
+        message: 'Rapport soumis avec succès ! Il sera modéré avant publication.',
+        data: {
+          country: validatedData.countryIso2,
+          amount: validatedData.amount,
+          currency: validatedData.currency,
+        },
+        reward: 10, // Récompense de base pour une déclaration
         timestamp: new Date().toISOString(),
       },
       201
@@ -59,7 +92,7 @@ reportsRouter.post('/', turnstileMiddleware, async (c) => {
   }
 });
 
-// Récupérer tous les rapports (avec pagination)
+// Récupérer tous les rapports (avec pagination et filtres)
 reportsRouter.get('/', async (c) => {
   try {
     const limit = parseInt(c.req.query('limit') || '50');
@@ -88,9 +121,31 @@ reportsRouter.get('/', async (c) => {
 
     const { results } = await c.env.DB.prepare(query).bind(...params).all();
 
+    // Obtenir le nombre total de rapports
+    let countQuery = 'SELECT COUNT(*) as count FROM family_payout_reports WHERE 1=1';
+    const countParams: any[] = [];
+
+    if (status) {
+      countQuery += ' AND status = ?';
+      countParams.push(status);
+    }
+
+    if (countryIso2) {
+      countQuery += ' AND country_iso2 = ?';
+      countParams.push(countryIso2);
+    }
+
+    const countResult = await c.env.DB.prepare(countQuery).bind(...countParams).all();
+    const total = countResult.results[0]?.count || 0;
+
     return c.json({
       success: true,
       data: results,
+      pagination: {
+        limit,
+        offset,
+        total,
+      },
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
@@ -140,60 +195,92 @@ reportsRouter.get('/:id', async (c) => {
   }
 });
 
-// Mettre à jour le statut d'un rapport (admin uniquement)
-reportsRouter.patch('/:id/status', async (c) => {
+// Récupérer les statistiques pour un pays
+reportsRouter.get('/:iso2/stats', async (c) => {
   try {
-    const id = c.req.param('id');
-    const { status, reason } = await c.req.json();
+    const iso2 = c.req.param('iso2');
 
-    if (!['pending', 'auto_approved', 'quarantined', 'rejected', 'published'].includes(status)) {
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN status = 'published' THEN 1 END) as published,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+        COUNT(CASE WHEN status = 'quarantined' THEN 1 END) as quarantined,
+        COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected,
+        AVG(amount) as avg_amount,
+        MIN(amount) as min_amount,
+        MAX(amount) as max_amount,
+        COUNT(DISTINCT currency) as currency_count
+      FROM family_payout_reports 
+      WHERE country_iso2 = ?
+    `;
+
+    const { results } = await c.env.DB.prepare(statsQuery).bind(iso2).all();
+
+    if (results.length === 0) {
       return c.json(
         {
           success: false,
-          error: 'Statut invalide',
+          error: 'Aucune donnée disponible pour ce pays',
           timestamp: new Date().toISOString(),
         },
-        400
+        404
       );
     }
 
-    const query = `
-      UPDATE family_payout_reports 
-      SET status = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `;
-    await c.env.DB.prepare(query).bind(status, id).run();
+    const stats = results[0];
 
-    // Insérer la décision de modération dans la base
-    const insertQuery = `
-      INSERT INTO moderation_decisions 
-      (id, report_id, decision, reason, moderator_id, created_at)
-      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    // Calculer la médiane (simplifié)
+    const medianQuery = `
+      SELECT amount FROM family_payout_reports 
+      WHERE country_iso2 = ? AND status = 'published'
+      ORDER BY amount
     `;
-    const decisionId = `decision_${Date.now()}_${id}`;
-    await c.env.DB.prepare(insertQuery).bind(
-      decisionId,
-      id,
-      status,
-      reason || null,
-      'admin_1' // À remplacer par l'ID du modérateur
-    ).run();
+    const medianResults = await c.env.DB.prepare(medianQuery).bind(iso2).all();
+    const amounts = medianResults.results.map((r: any) => r.amount);
+    const median = amounts.length > 0 ? calculateMedian(amounts) : 0;
 
     return c.json({
       success: true,
-      message: 'Statut du rapport mis à jour avec succès',
+      data: {
+        country: iso2,
+        total: stats.total,
+        published: stats.published,
+        pending: stats.pending,
+        quarantined: stats.quarantined,
+        rejected: stats.rejected,
+        avgAmount: stats.avg_amount,
+        minAmount: stats.min_amount,
+        maxAmount: stats.max_amount,
+        medianAmount: median,
+        currencyCount: stats.currency_count,
+      },
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     return c.json(
       {
         success: false,
-        error: 'Échec de la mise à jour du statut',
+        error: 'Échec de la récupération des statistiques',
         timestamp: new Date().toISOString(),
       },
       500
     );
   }
 });
+
+// Fonction utilitaire pour calculer la médiane
+function calculateMedian(values: number[]): number {
+  if (values.length === 0) return 0;
+  
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  
+  if (sorted.length % 2 === 0) {
+    return (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+  
+  return sorted[middle];
+}
 
 export default reportsRouter;
