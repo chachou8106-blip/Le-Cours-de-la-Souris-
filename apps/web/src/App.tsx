@@ -5,6 +5,7 @@ import CountryDetailPage from './pages/Countries/Detail';
 import IndexPage from './pages/Index';
 import GamesPage from './pages/Games';
 import CROQPage from './pages/CROQ';
+import OfficialRatesPage from './pages/OfficialRates/OfficialRatesPage';
 import AdminLayout from './pages/Admin/Layout';
 import LegalLayout from './pages/Legal/Layout';
 import DailyHumor from './features/daily-humor/DailyHumor';
@@ -20,6 +21,7 @@ function App() {
         <Route path="/index" element={<IndexPage />} />
         <Route path="/games" element={<GamesPage />} />
         <Route path="/croq" element={<CROQPage />} />
+        <Route path="/official-rates" element={<OfficialRatesPage />} />
         <Route path="/admin/*" element={<AdminLayout />} />
         <Route path="/legal/*" element={<LegalLayout />} />
       </Routes>
