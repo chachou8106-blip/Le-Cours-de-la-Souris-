@@ -1,0 +1,53 @@
+name: Preview Deployment
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Build frontend
+        run: pnpm --filter @cours-de-la-souris/web build
+      
+      - name: Deploy to Cloudflare Pages (Preview)
+        uses: cloudflare/pages-action@1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: 'cours-de-la-souris'
+          directory: 'apps/web/dist'
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+        id: deploy
+      
+      - name: Comment PR with Preview URL
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const deployment = ${{ steps.deploy.outputs.deployment }};
+            const url = deployment.url || 'https://preview.coursdelasouris.fr';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Preview Deployment**\n\n🔗 URL: [${url}](${url})\n\n⚠️ Ce déploiement est éphémère et sera supprimé après la fusion ou la fermeture de la PR.`
+            });

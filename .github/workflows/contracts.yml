@@ -1,0 +1,81 @@
+name: Smart Contracts Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'packages/contracts/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'packages/contracts/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Setup Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      
+      - name: Install dependencies
+        run: |
+          cd packages/contracts
+          forge install
+      
+      - name: Run Forge tests
+        run: |
+          cd packages/contracts
+          forge test --ff
+      
+      - name: Run Forge coverage
+        run: |
+          cd packages/contracts
+          forge coverage --report lcov
+      
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: forge-coverage
+          path: packages/contracts/coverage/
+
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      
+      - name: Check formatting
+        run: |
+          cd packages/contracts
+          forge fmt --check
+
+  slither:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install Slither
+        run: pip install slither-analyzer
+      
+      - name: Run Slither
+        run: |
+          cd packages/contracts
+          slither . --exclude-dependencies
