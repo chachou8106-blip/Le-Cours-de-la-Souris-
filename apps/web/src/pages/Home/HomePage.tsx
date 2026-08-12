@@ -40,35 +40,59 @@ export const HomePage: React.FC = () => {
           </Link>
         </Card>
 
+        <Card title="📝 Déclarer" subtitle="Contribuer">
+          <p>Aidez-nous en déclarant un montant pour la Petite Souris.</p>
+          <Link to="/reports" className="text-[var(--primary)] hover:underline mt-2 inline-block">
+            Faire une déclaration →
+          </Link>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <Card title="🎮 Mini-Jeux" subtitle="20 jeux pour gagner des CROQ">
           <p>Jouez à nos 20 mini-jeux pour gagner des CROQ Credits !</p>
           <Link to="/games" className="text-[var(--primary)] hover:underline mt-2 inline-block">
             Jouer maintenant →
           </Link>
         </Card>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <Card title="🪙 CROQ Credits" subtitle="Récompenses et économie">
           <p>Découvrez comment gagner et utiliser des CROQ Credits.</p>
           <Link to="/croq" className="text-[var(--primary)] hover:underline mt-2 inline-block">
             En savoir plus →
           </Link>
         </Card>
-
-        <Card title="📢 Partenariats" subtitle="Collaborations">
-          <p>Découvrez nos partenaires : Amazon, Colgate, Oral-B, et plus !</p>
-          <p className="text-sm text-[var(--secondary)] mt-2">
-            Code Amazon : <code>zencheztoi-21</code>
-          </p>
-        </Card>
       </div>
+
+      <Card title="🤝 Partenariats" className="mb-8">
+        <p className="mb-2">Découvrez nos partenaires :</p>
+        <div className="flex flex-wrap gap-2">
+          <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
+            Amazon (zencheztoi-21)
+          </span>
+          <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
+            Colgate
+          </span>
+          <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
+            Oral-B
+          </span>
+          <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
+            Lego
+          </span>
+        </div>
+      </Card>
 
       <Card title="⚠️ Avertissement" className="mb-8">
         <p className="text-sm">
           <strong>Le Cours de la Souris</strong> est une application **familiale et éducative**. 
           Les CROQ Credits ne sont **pas une cryptomonnaie** et n'ont **aucune valeur monétaire**. 
           Les données affichées sont **à titre indicatif uniquement**.
+          <br /><br />
+          <strong>Deux types de cours sont disponibles :</strong>
+          <ul className="list-disc pl-5 mt-2">
+            <li><strong>Cours Officiel</strong> : Coût réel d'une extraction dentaire (sources : associations dentaires).</li>
+            <li><strong>Cours Communautaire</strong> : Montants déclarés par les utilisateurs pour la Petite Souris.</li>
+          </ul>
         </p>
       </Card>
     </div>

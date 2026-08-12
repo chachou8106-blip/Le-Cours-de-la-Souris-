@@ -30,7 +30,7 @@ reportsRouter.post('/', turnstileMiddleware, async (c) => {
     return c.json(
       {
         success: true,
-        message: 'Rapport soumis avec succès !',
+        message: 'Rapport soumis avec succès ! Il sera validé sous 24-48h.',
         data: validatedData,
         timestamp: new Date().toISOString(),
       },
@@ -65,6 +65,7 @@ reportsRouter.get('/', async (c) => {
     const limit = parseInt(c.req.query('limit') || '50');
     const offset = parseInt(c.req.query('offset') || '0');
     const status = c.req.query('status');
+    const countryIso2 = c.req.query('country');
 
     let query = `
       SELECT * FROM family_payout_reports 
@@ -75,6 +76,11 @@ reportsRouter.get('/', async (c) => {
     if (status) {
       query += ' AND status = ?';
       params.push(status);
+    }
+
+    if (countryIso2) {
+      query += ' AND country_iso2 = ?';
+      params.push(countryIso2);
     }
 
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
@@ -127,6 +133,62 @@ reportsRouter.get('/:id', async (c) => {
       {
         success: false,
         error: 'Échec de la récupération du rapport',
+        timestamp: new Date().toISOString(),
+      },
+      500
+    );
+  }
+});
+
+// Mettre à jour le statut d'un rapport (admin uniquement)
+reportsRouter.patch('/:id/status', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const { status, reason } = await c.req.json();
+
+    if (!['pending', 'auto_approved', 'quarantined', 'rejected', 'published'].includes(status)) {
+      return c.json(
+        {
+          success: false,
+          error: 'Statut invalide',
+          timestamp: new Date().toISOString(),
+        },
+        400
+      );
+    }
+
+    const query = `
+      UPDATE family_payout_reports 
+      SET status = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `;
+    await c.env.DB.prepare(query).bind(status, id).run();
+
+    // Insérer la décision de modération dans la base
+    const insertQuery = `
+      INSERT INTO moderation_decisions 
+      (id, report_id, decision, reason, moderator_id, created_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `;
+    const decisionId = `decision_${Date.now()}_${id}`;
+    await c.env.DB.prepare(insertQuery).bind(
+      decisionId,
+      id,
+      status,
+      reason || null,
+      'admin_1' // À remplacer par l'ID du modérateur
+    ).run();
+
+    return c.json({
+      success: true,
+      message: 'Statut du rapport mis à jour avec succès',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return c.json(
+      {
+        success: false,
+        error: 'Échec de la mise à jour du statut',
         timestamp: new Date().toISOString(),
       },
       500
