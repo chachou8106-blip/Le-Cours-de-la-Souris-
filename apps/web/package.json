@@ -20,7 +20,7 @@
     "tailwindcss": "^3.3.0",
     "@radix-ui/react-dropdown-menu": "^2.0.0",
     "@radix-ui/react-dialog": "^1.0.0",
-    "lucide-react": "^0.294.0",
+    "lucide-react": "^0.577.0",
     "recharts": "^2.10.0",
     "maplibre-gl": "^2.1.9",
     "i18next": "^23.0.0",
