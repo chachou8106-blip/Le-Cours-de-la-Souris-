@@ -1,89 +1,230 @@
-// Adaptateur pour récupérer les taux de change depuis des API réelles
-// Note: Ce fichier est un placeholder pour une intégration future avec des API comme ExchangeRate-API ou Fixer.io
+/**
+ * Adaptateur pour les taux de change réels (FX)
+ * 
+ * Ce module fournit des fonctions pour récupérer les taux de change
+ * depuis des APIs externes comme ExchangeRate-API, Fixer.io, etc.
+ * 
+ * Note: Les appels réels aux APIs sont désactivés par défaut.
+ *       Ils doivent être activés via des variables d'environnement.
+ */
 
-import { FXRate } from '../../../schemas/src/db/fx-rates';
+import axios from 'axios';
 
-// Interface pour les providers de taux de change
-export interface FXProvider {
-  getFXRates(): Promise<FXRate[]>;
-  getFXRate(fromCurrency: string, toCurrency: string): Promise<FXRate | null>;
-  convertCurrency(amount: number, fromCurrency: string, toCurrency: string): Promise<number>;
+// Interface pour un taux de change
+export interface FXRate {
+  from: string;
+  to: string;
+  rate: number;
+  source: string;
+  observedAt: string;
+  retrievedAt: string;
 }
 
-// Exemple de provider pour ExchangeRate-API
-export class ExchangeRateAPIProvider implements FXProvider {
-  private apiKey: string;
-
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
-  }
-
-  async getFXRates(): Promise<FXRate[]> {
-    // Dans une implémentation réelle, on appellerait l'API ExchangeRate-API
-    // Exemple: https://v6.exchangerate-api.com/v6/YOUR-API-KEY/latest/EUR
-    throw new Error('Non implémenté : Intégration avec ExchangeRate-API requise');
-  }
-
-  async getFXRate(fromCurrency: string, toCurrency: string): Promise<FXRate | null> {
-    // Récupérer le taux depuis l'API
-    throw new Error('Non implémenté : Intégration avec ExchangeRate-API requise');
-  }
-
-  async convertCurrency(amount: number, fromCurrency: string, toCurrency: string): Promise<number> {
-    if (fromCurrency === toCurrency) return amount;
-
-    const rate = await this.getFXRate(fromCurrency, toCurrency);
-    if (!rate) {
-      throw new Error(`Taux de change non trouvé pour ${fromCurrency} -> ${toCurrency}`);
-    }
-
-    return amount * rate.rate;
-  }
+// Interface pour les paramètres de configuration
+interface FXProviderConfig {
+  apiUrl: string;
+  apiKey?: string;
+  cacheTtl: number; // Durée de cache en millisecondes
+  enabled: boolean; // Si l'adaptateur est activé
+  baseCurrency?: string; // Devise de base par défaut
 }
 
-// Exemple de provider pour Fixer.io
-export class FixerIOProvider implements FXProvider {
-  private apiKey: string;
-
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
-  }
-
-  async getFXRates(): Promise<FXRate[]> {
-    // Dans une implémentation réelle, on appellerait l'API Fixer.io
-    // Exemple: http://data.fixer.io/api/latest?access_key=YOUR-API-KEY
-    throw new Error('Non implémenté : Intégration avec Fixer.io requise');
-  }
-
-  async getFXRate(fromCurrency: string, toCurrency: string): Promise<FXRate | null> {
-    // Récupérer le taux depuis l'API
-    throw new Error('Non implémenté : Intégration avec Fixer.io requise');
-  }
-
-  async convertCurrency(amount: number, fromCurrency: string, toCurrency: string): Promise<number> {
-    if (fromCurrency === toCurrency) return amount;
-
-    const rate = await this.getFXRate(fromCurrency, toCurrency);
-    if (!rate) {
-      throw new Error(`Taux de change non trouvé pour ${fromCurrency} -> ${toCurrency}`);
-    }
-
-    return amount * rate.rate;
-  }
-}
-
-// Provider par défaut (utilise les données mock)
-export const defaultFXProvider: FXProvider = {
-  getFXRates: async () => {
-    const mockData = await import('./mock-fx');
-    return mockData.mockFXRates;
-  },
-  getFXRate: async (fromCurrency: string, toCurrency: string) => {
-    const mockData = await import('./mock-fx');
-    return mockData.getMockFXRate(fromCurrency, toCurrency);
-  },
-  convertCurrency: async (amount: number, fromCurrency: string, toCurrency: string) => {
-    const mockData = await import('./mock-fx');
-    return mockData.convertCurrency(amount, fromCurrency, toCurrency);
-  },
+// Configuration par défaut (désactivée)
+const defaultConfig: FXProviderConfig = {
+  apiUrl: '',
+  apiKey: undefined,
+  cacheTtl: 1000 * 60 * 60, // 1 heure
+  enabled: false,
+  baseCurrency: 'EUR',
 };
+
+// Cache local pour les taux
+let fxCache: Record<string, { rate: number; timestamp: number }> = {};
+
+/**
+ * Générer une clé de cache pour une paire de devises
+ */
+function generateCacheKey(from: string, to: string): string {
+  return `${from.toUpperCase()}_${to.toUpperCase()}`;
+}
+
+/**
+ * Récupérer le taux de change entre deux devises
+ * 
+ * @param from - Devise source (ex: 'EUR')
+ * @param to - Devise cible (ex: 'USD')
+ * @param config - Configuration de l'API (optionnelle)
+ * @returns Promise<FXRate | null>
+ */
+export async function fetchFXRate(
+  from: string,
+  to: string,
+  config: FXProviderConfig = defaultConfig
+): Promise<FXRate | null> {
+  if (!config.enabled) {
+    console.warn(`L'adaptateur FX est désactivé pour ${from} -> ${to}.`);
+    return null;
+  }
+
+  // Normaliser les devises
+  from = from.toUpperCase();
+  to = to.toUpperCase();
+
+  // Vérifier le cache
+  const cacheKey = generateCacheKey(from, to);
+  const cached = fxCache[cacheKey];
+  if (cached && Date.now() - cached.timestamp < config.cacheTtl) {
+    return {
+      from,
+      to,
+      rate: cached.rate,
+      source: 'Cache',
+      observedAt: new Date().toISOString(),
+      retrievedAt: new Date().toISOString(),
+    };
+  }
+
+  try {
+    // Exemple d'appel API (à adapter selon la source réelle)
+    // Pour ExchangeRate-API: https://www.exchangerate-api.com/docs/overview
+    const response = await axios.get(`${config.apiUrl}/pair/${from}/${to}`, {
+      headers: {
+        'Authorization': `Bearer ${config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const rate = parseFloat(response.data.rate) || 0;
+
+    // Mettre en cache
+    fxCache[cacheKey] = {
+      rate,
+      timestamp: Date.now(),
+    };
+
+    return {
+      from,
+      to,
+      rate,
+      source: config.apiUrl,
+      observedAt: response.data.time_last_update_unix ? new Date(response.data.time_last_update_unix * 1000).toISOString() : new Date().toISOString(),
+      retrievedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error(`Erreur lors de la récupération du taux ${from} -> ${to}:`, error);
+    
+    // Retourner le taux en cache si disponible
+    if (cached) {
+      return {
+        from,
+        to,
+        rate: cached.rate,
+        source: 'Cache (fallback)',
+        observedAt: new Date().toISOString(),
+        retrievedAt: new Date().toISOString(),
+      };
+    }
+    
+    return null;
+  }
+}
+
+/**
+ * Récupérer les taux de change pour une devise de base
+ * 
+ * @param base - Devise de base (ex: 'EUR')
+ * @param config - Configuration de l'API (optionnelle)
+ * @returns Promise<FXRate[]>
+ */
+export async function fetchFXRatesForBase(
+  base: string,
+  config: FXProviderConfig = defaultConfig
+): Promise<FXRate[]> {
+  if (!config.enabled) {
+    console.warn(`L'adaptateur FX est désactivé pour la base ${base}.`);
+    return [];
+  }
+
+  base = base.toUpperCase();
+
+  try {
+    // Exemple d'appel API pour obtenir tous les taux pour une base
+    const response = await axios.get(`${config.apiUrl}/latest/${base}`, {
+      headers: {
+        'Authorization': `Bearer ${config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const rates: FXRate[] = [];
+    const ratesData = response.data.rates || {};
+
+    for (const [to, rate] of Object.entries(ratesData)) {
+      rates.push({
+        from: base,
+        to: to.toUpperCase(),
+        rate: parseFloat(rate as string) || 0,
+        source: config.apiUrl,
+        observedAt: response.data.time_last_update_unix ? new Date(response.data.time_last_update_unix * 1000).toISOString() : new Date().toISOString(),
+        retrievedAt: new Date().toISOString(),
+      });
+
+      // Mettre en cache
+      const cacheKey = generateCacheKey(base, to);
+      fxCache[cacheKey] = {
+        rate: parseFloat(rate as string) || 0,
+        timestamp: Date.now(),
+      };
+    }
+
+    return rates;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération des taux pour la base ${base}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Convertir un montant d'une devise à une autre
+ * 
+ * @param amount - Montant à convertir
+ * @param from - Devise source
+ * @param to - Devise cible
+ * @param config - Configuration de l'API (optionnelle)
+ * @returns Promise<number | null>
+ */
+export async function convertCurrency(
+  amount: number,
+  from: string,
+  to: string,
+  config: FXProviderConfig = defaultConfig
+): Promise<number | null> {
+  if (from === to) return amount;
+
+  const fxRate = await fetchFXRate(from, to, config);
+  if (!fxRate) return null;
+
+  return amount * fxRate.rate;
+}
+
+/**
+ * Effacer le cache des taux de change
+ */
+export function clearFXCache(): void {
+  fxCache = {};
+}
+
+/**
+ * Configurer l'adaptateur FX
+ */
+export function configureFXProvider(
+  config: Partial<FXProviderConfig>
+): FXProviderConfig {
+  return {
+    ...defaultConfig,
+    ...config,
+  };
+}
+
+// Exporter la configuration par défaut
+export { defaultConfig as fxProviderConfig };

@@ -1,14 +1,15 @@
-// Export des providers par défaut
-export { defaultFXProvider } from './fx-providers/real-fx';
-export { defaultPPPProvider } from './ppp-providers/real-ppp';
-export { defaultDentalTariffProvider } from './dental-tariffs/real-tariffs';
+// Export des adaptateurs de données
 
-// Export des mocks pour le développement
-export { mockFXRates, getMockFXRates, getMockFXRate, convertCurrency as mockConvertCurrency } from './fx-providers/mock-fx';
-export { mockPPPRates, getMockPPPRates, getMockPPPRate, convertViaPPP as mockConvertViaPPP } from './ppp-providers/mock-ppp';
-export { mockOfficialDentalTariffs, getMockOfficialDentalTariffs, getMockOfficialDentalTariffByCountry } from './dental-tariffs/mock-tariffs';
+export * from './dental-tariffs/mock-tariffs';
+export * from './dental-tariffs/real-tariffs';
 
-// Export des types
-export type { FXProvider } from './fx-providers/real-fx';
-export type { PPPProvider } from './ppp-providers/real-ppp';
-export type { DentalTariffProvider } from './dental-tariffs/real-tariffs';
+export * from './fx-providers/mock-fx';
+export * from './fx-providers/real-fx';
+
+export * from './ppp-providers/mock-ppp';
+export * from './ppp-providers/real-ppp';
+
+// Types
+export type { OfficialDentalTariff } from './dental-tariffs/real-tariffs';
+export type { FXRate } from './fx-providers/real-fx';
+export type { PPPRate } from './ppp-providers/real-ppp';

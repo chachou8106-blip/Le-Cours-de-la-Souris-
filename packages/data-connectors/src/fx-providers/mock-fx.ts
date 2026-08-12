@@ -1,38 +1,104 @@
-// Mock des taux de change pour le développement
-import { FXRate } from '../../../schemas/src/db/fx-rates';
+/**
+ * Mock des taux de change (FX)
+ * 
+ * Ce fichier fournit des données de démonstration pour les taux de change.
+ * Ces données sont utilisées pour le développement et les tests.
+ */
 
-// Données de démonstration pour les taux de change
+import { FXRate } from './real-fx';
+
+// Taux de change de démonstration (par rapport à l'EUR)
 export const mockFXRates: FXRate[] = [
-  { id: 'fx_1', from_currency: 'EUR', to_currency: 'USD', rate: 1.1, source: 'ECB', observed_at: '2026-08-12', is_demo: true, confidence: 1.0 },
-  { id: 'fx_2', from_currency: 'EUR', to_currency: 'GBP', rate: 0.85, source: 'ECB', observed_at: '2026-08-12', is_demo: true, confidence: 1.0 },
-  { id: 'fx_3', from_currency: 'USD', to_currency: 'EUR', rate: 0.91, source: 'FED', observed_at: '2026-08-12', is_demo: true, confidence: 1.0 },
-  { id: 'fx_4', from_currency: 'USD', to_currency: 'GBP', rate: 0.77, source: 'FED', observed_at: '2026-08-12', is_demo: true, confidence: 1.0 },
-  { id: 'fx_5', from_currency: 'GBP', to_currency: 'EUR', rate: 1.18, source: 'BoE', observed_at: '2026-08-12', is_demo: true, confidence: 1.0 },
-  { id: 'fx_6', from_currency: 'GBP', to_currency: 'USD', rate: 1.3, source: 'BoE', observed_at: '2026-08-12', is_demo: true, confidence: 1.0 },
-  { id: 'fx_7', from_currency: 'EUR', to_currency: 'JPY', rate: 160, source: 'ECB', observed_at: '2026-08-12', is_demo: true, confidence: 1.0 },
-  { id: 'fx_8', from_currency: 'USD', to_currency: 'JPY', rate: 145, source: 'FED', observed_at: '2026-08-12', is_demo: true, confidence: 1.0 },
-  { id: 'fx_9', from_currency: 'EUR', to_currency: 'CAD', rate: 1.45, source: 'ECB', observed_at: '2026-08-12', is_demo: true, confidence: 1.0 },
-  { id: 'fx_10', from_currency: 'EUR', to_currency: 'AUD', rate: 1.6, source: 'ECB', observed_at: '2026-08-12', is_demo: true, confidence: 1.0 },
+  { from: 'EUR', to: 'USD', rate: 1.1, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  { from: 'EUR', to: 'GBP', rate: 0.85, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  { from: 'EUR', to: 'JPY', rate: 160, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  { from: 'EUR', to: 'CAD', rate: 1.45, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  { from: 'EUR', to: 'AUD', rate: 1.6, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  { from: 'EUR', to: 'BRL', rate: 5.5, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  
+  // Taux inverses (par rapport à l'USD)
+  { from: 'USD', to: 'EUR', rate: 0.91, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  { from: 'USD', to: 'GBP', rate: 0.77, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  { from: 'USD', to: 'JPY', rate: 145, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  { from: 'USD', to: 'CAD', rate: 1.32, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  { from: 'USD', to: 'AUD', rate: 1.45, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  { from: 'USD', to: 'BRL', rate: 5, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  
+  // Autres paires
+  { from: 'GBP', to: 'USD', rate: 1.3, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  { from: 'GBP', to: 'EUR', rate: 1.18, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  { from: 'JPY', to: 'USD', rate: 0.0069, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
+  { from: 'JPY', to: 'EUR', rate: 0.0063, source: 'Mock', observedAt: '2026-08-01T00:00:00Z', retrievedAt: '2026-08-12T00:00:00Z' },
 ];
 
-// Fonction pour récupérer tous les taux de change (mock)
-export const getMockFXRates = async (): Promise<FXRate[]> => {
-  return mockFXRates;
-};
-
-// Fonction pour récupérer un taux de change spécifique (mock)
-export const getMockFXRate = async (fromCurrency: string, toCurrency: string): Promise<FXRate | null> => {
-  return mockFXRates.find(rate => rate.from_currency === fromCurrency && rate.to_currency === toCurrency) || null;
-};
-
-// Fonction pour convertir un montant d'une devise à une autre (mock)
-export const convertCurrency = async (amount: number, fromCurrency: string, toCurrency: string): Promise<number> => {
-  if (fromCurrency === toCurrency) return amount;
-
-  const rate = await getMockFXRate(fromCurrency, toCurrency);
-  if (!rate) {
-    throw new Error(`Taux de change non trouvé pour ${fromCurrency} -> ${toCurrency}`);
+// Fonctions utilitaires pour les mocks
+/**
+ * Obtenir le taux de change entre deux devises (mock)
+ */
+export function getMockFXRate(from: string, to: string): FXRate | null {
+  from = from.toUpperCase();
+  to = to.toUpperCase();
+  
+  // Cas spécial: même devise
+  if (from === to) {
+    return {
+      from,
+      to,
+      rate: 1,
+      source: 'Mock',
+      observedAt: '2026-08-01T00:00:00Z',
+      retrievedAt: new Date().toISOString(),
+    };
   }
+  
+  // Rechercher le taux direct
+  const directRate = mockFXRates.find(
+    (rate) => rate.from === from && rate.to === to
+  );
+  if (directRate) {
+    return directRate;
+  }
+  
+  // Rechercher le taux inverse
+  const inverseRate = mockFXRates.find(
+    (rate) => rate.from === to && rate.to === from
+  );
+  if (inverseRate) {
+    return {
+      ...inverseRate,
+      from,
+      to: inverseRate.from,
+      rate: 1 / inverseRate.rate,
+    };
+  }
+  
+  // Si aucun taux trouvé, retourner null
+  return null;
+}
 
-  return amount * rate.rate;
-};
+/**
+ * Obtenir tous les taux pour une devise de base (mock)
+ */
+export function getMockFXRatesForBase(base: string): FXRate[] {
+  base = base.toUpperCase();
+  return mockFXRates.filter((rate) => rate.from === base);
+}
+
+/**
+ * Convertir un montant d'une devise à une autre (mock)
+ */
+export function mockConvertCurrency(
+  amount: number,
+  from: string,
+  to: string
+): number | null {
+  if (from === to) return amount;
+  
+  const fxRate = getMockFXRate(from, to);
+  if (!fxRate) return null;
+  
+  return amount * fxRate.rate;
+}
+
+// Exporter les taux par défaut
+export default mockFXRates;
