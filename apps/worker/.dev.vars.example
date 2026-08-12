@@ -1,0 +1,45 @@
+# Exemple de fichier de variables d'environnement pour le développement local
+# Copiez ce fichier en `.dev.vars` et remplissez les valeurs avec vos identifiants Cloudflare.
+
+# --- Cloudflare ---
+# ID de votre compte Cloudflare
+CLOUDFLARE_ACCOUNT_ID=your_account_id
+
+# Token API Cloudflare (avec permissions pour D1, KV, R2)
+CLOUDFLARE_API_TOKEN=your_api_token
+
+# --- Base de Données D1 ---
+# ID de votre base de données D1 (créée via le dashboard Cloudflare)
+CLOUDFLARE_D1_ID=your_d1_database_id
+
+# --- KV (Key-Value) ---
+# ID de votre namespace KV
+CLOUDFLARE_KV_ID=your_kv_namespace_id
+
+# --- R2 (Stockage) ---
+# Nom de votre bucket R2
+CLOUDFLARE_R2_BUCKET_NAME=cours-de-la-souris-r2
+
+# --- Turnstile (Anti-Bot) ---
+# Clé secrète pour vérifier les tokens Turnstile
+TURNSTILE_SECRET=your_turnstile_secret
+# Clé de site pour afficher le widget Turnstile (optionnelle pour le frontend)
+TURNSTILE_SITE_KEY=your_turnstile_site_key
+
+# --- Environnement ---
+# Environnement actuel (dev, staging, production)
+ENVIRONMENT=dev
+
+# --- Variables d'Application ---
+# Clé secrète pour les sessions (générée aléatoirement)
+SESSION_SECRET=your_session_secret
+
+# URL du frontend (pour les CORS)
+FRONTEND_URL=http://localhost:3000
+
+# --- API Externes (Optionnelles) ---
+# Clé API pour un service de taux de change (ex: ExchangeRate-API)
+FX_API_KEY=your_fx_api_key
+
+# Clé API pour un service de PPA (ex: Banque Mondiale)
+PPP_API_KEY=your_ppp_api_key

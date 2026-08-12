@@ -1,0 +1,38 @@
+# Exemple de fichier de configuration pour Cloudflare (développement local)
+# Ce fichier est utilisé pour configurer Wrangler en local.
+# Copiez ce fichier en `wrangler.toml` ou utilisez les variables ci-dessous.
+
+# --- Configuration de Base ---
+name = "cours-de-la-souris-worker"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# --- Variables d'Environnement ---
+[vars]
+ENVIRONMENT = "dev"
+
+# --- Bindings Cloudflare ---
+# Ces bindings sont configurés dans le dashboard Cloudflare.
+# Pour le développement local, utilisez Miniflare ou configurez des valeurs mock.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cours-de-la-souris-db-dev"
+# database_id = "@CLOUDFLARE_D1_ID"  # À remplacer par l'ID réel
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "cours-de-la-souris-r2-dev"
+# bucket_id = "@CLOUDFLARE_R2_ID"  # À remplacer par l'ID réel
+
+[[kv_namespaces]]
+binding = "KV"
+id = "@CLOUDFLARE_KV_ID"  # À remplacer par l'ID réel
+
+# --- Turnstile ---
+# turnstile_secret = "@TURNSTILE_SECRET"  # À configurer dans les secrets
+
+# --- Local Development (Miniflare) ---
+# Pour tester en local avec Miniflare, utilisez :
+# pnpm dev
+# Les bindings D1, R2, KV seront simulés en local.

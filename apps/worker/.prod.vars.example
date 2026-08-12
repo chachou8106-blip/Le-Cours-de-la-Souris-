@@ -1,0 +1,39 @@
+# Exemple de fichier de variables d'environnement pour la production
+# ⚠️  NE JAMAIS COMMITER CE FICHIER AVEC DES VALEURS RÉELLES !
+# Copiez ce fichier en `.prod.vars` et remplissez les valeurs avec vos identifiants Cloudflare.
+# Stockez les valeurs réelles dans Cloudflare Secrets ou GitHub Secrets.
+
+# --- Cloudflare ---
+CLOUDFLARE_ACCOUNT_ID=your_account_id
+CLOUDFLARE_API_TOKEN=your_api_token
+
+# --- Base de Données D1 ---
+CLOUDFLARE_D1_ID=your_d1_database_id
+
+# --- KV (Key-Value) ---
+CLOUDFLARE_KV_ID=your_kv_namespace_id
+
+# --- R2 (Stockage) ---
+CLOUDFLARE_R2_BUCKET_NAME=cours-de-la-souris-r2
+
+# --- Turnstile (Anti-Bot) ---
+TURNSTILE_SECRET=your_turnstile_secret
+TURNSTILE_SITE_KEY=your_turnstile_site_key
+
+# --- Environnement ---
+ENVIRONMENT=production
+
+# --- Variables d'Application ---
+SESSION_SECRET=your_session_secret
+FRONTEND_URL=https://coursdelasouris.fr
+
+# --- API Externes (Optionnelles) ---
+FX_API_KEY=your_fx_api_key
+PPP_API_KEY=your_ppp_api_key
+
+# --- Sécurité ---
+# Désactiver le mode debug
+DEBUG=false
+
+# Activer le rate limiting strict
+RATE_LIMIT_STRICT=true

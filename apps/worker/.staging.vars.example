@@ -1,0 +1,30 @@
+# Exemple de fichier de variables d'environnement pour le staging
+# Copiez ce fichier en `.staging.vars` et remplissez les valeurs avec vos identifiants Cloudflare.
+
+# --- Cloudflare ---
+CLOUDFLARE_ACCOUNT_ID=your_account_id
+CLOUDFLARE_API_TOKEN=your_api_token
+
+# --- Base de Données D1 ---
+CLOUDFLARE_D1_ID=your_d1_database_id
+
+# --- KV (Key-Value) ---
+CLOUDFLARE_KV_ID=your_kv_namespace_id
+
+# --- R2 (Stockage) ---
+CLOUDFLARE_R2_BUCKET_NAME=cours-de-la-souris-r2-staging
+
+# --- Turnstile (Anti-Bot) ---
+TURNSTILE_SECRET=your_turnstile_secret
+TURNSTILE_SITE_KEY=your_turnstile_site_key
+
+# --- Environnement ---
+ENVIRONMENT=staging
+
+# --- Variables d'Application ---
+SESSION_SECRET=your_session_secret
+FRONTEND_URL=https://staging.coursdelasouris.fr
+
+# --- API Externes (Optionnelles) ---
+FX_API_KEY=your_fx_api_key
+PPP_API_KEY=your_ppp_api_key

@@ -2,9 +2,11 @@ name = "cours-de-la-souris-worker"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
+# Variables globales
 [vars]
 ENVIRONMENT = "development"
 
+# Bindings Cloudflare
 [[d1_databases]]
 binding = "DB"
 database_name = "cours-de-la-souris-db"
@@ -18,5 +20,23 @@ bucket_name = "cours-de-la-souris-r2"
 binding = "KV"
 id = "@CLOUDFLARE_KV_ID"
 
+# Turnstile (Anti-Bot)
+[turnstile]
+secret = "@TURNSTILE_SECRET"
+site_key = "@TURNSTILE_SITE_KEY"
+
+# Cron Triggers (Tâches planifiées)
 [triggers]
-crons = ["0 0 * * *"]  # Tâches quotidiennes
+crons = ["0 0 * * *"]  # Tâches quotidiennes à minuit UTC
+
+# Variables spécifiques à l'environnement
+[env.staging]
+name = "cours-de-la-souris-worker-staging"
+[vars]
+ENVIRONMENT = "staging"
+
+[env.production]
+name = "cours-de-la-souris-worker-production"
+[vars]
+ENVIRONMENT = "production"
+DEBUG = false
