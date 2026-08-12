@@ -9,6 +9,7 @@ import { indexRouter } from './routes/index';
 import { chatRouter } from './routes/chat';
 import { croqRouter } from './routes/croq';
 import { adminRouter } from './routes/admin';
+import { officialRatesRouter } from './routes/official-rates';
 import { turnstileMiddleware } from './middleware/turnstile';
 import { rateLimitMiddleware } from './middleware/rate-limit';
 import { errorHandler } from './middleware/error';
@@ -25,6 +26,7 @@ app.route('/api/v1/reports', reportsRouter);
 app.route('/api/v1/index', indexRouter);
 app.route('/api/v1/chat', chatRouter);
 app.route('/api/v1/croq', croqRouter);
+app.route('/api/v1/official-rates', officialRatesRouter);
 
 // Routes admin (protégées)
 app.route('/api/v1/admin', adminRouter);
