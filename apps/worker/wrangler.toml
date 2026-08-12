@@ -1,0 +1,22 @@
+name = "cours-de-la-souris-worker"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+ENVIRONMENT = "development"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cours-de-la-souris-db"
+database_id = "@CLOUDFLARE_D1_ID"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "cours-de-la-souris-r2"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "@CLOUDFLARE_KV_ID"
+
+[triggers]
+crons = ["0 0 * * *"]  # Tâches quotidiennes

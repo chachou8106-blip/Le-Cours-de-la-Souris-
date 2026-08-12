@@ -1,0 +1,25 @@
+{
+  "name": "@cours-de-la-souris/worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "tail:staging": "wrangler tail --env staging",
+    "tail:production": "wrangler tail --env production"
+  },
+  "dependencies": {
+    "hono": "^3.12.0",
+    "@hono/zod-validator": "^0.1.0",
+    "zod": "^3.22.0",
+    "drizzle-orm": "^0.29.0",
+    "@cloudflare/workers-types": "^4.20240117.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

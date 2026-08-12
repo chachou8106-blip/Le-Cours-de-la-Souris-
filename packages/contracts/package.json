@@ -1,0 +1,17 @@
+{
+  "name": "@cours-de-la-souris/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "fmt": "forge fmt",
+    "fmt:check": "forge fmt --check",
+    "coverage": "forge coverage",
+    "slither": "slither ."
+  },
+  "devDependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "@openzeppelin/contracts-upgradeable": "^5.0.0"
+  }
+}

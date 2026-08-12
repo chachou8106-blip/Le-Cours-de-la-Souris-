@@ -1,0 +1,22 @@
+{
+  "name": "Le Cours de la Souris",
+  "short_name": "CoursSouris",
+  "description": "L’indice mondial communautaire des dents de lait.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f3ec",
+  "theme_color": "#0F6E56",
+  "icons": [
+    {
+      "src": "/brand/logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brand/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "@cours-de-la-souris/config",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint --ext .json,.js"
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0"
+  }
+}
