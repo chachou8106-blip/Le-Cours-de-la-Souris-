@@ -1,94 +1,110 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Card } from '../../components/ui';
 
-const words = ['SOURIS', 'DENT', 'PIÈCE', 'CROQ', 'JEU', 'PAYS', 'TRADITION', 'ENFANT'];
+const words = ['SOURIS', 'DENT', 'CROQ', 'JEU', 'ENFANT', 'PARENT', 'TRADITION', 'MONNAIE'];
 
-export const HangmanGame: React.FC<{ onWin: (reward: number) => void }> = ({ onWin }) => {
+interface HangmanGameProps {
+  onWin: (reward: number) => void;
+}
+
+export const HangmanGame: React.FC<HangmanGameProps> = ({ onWin }) => {
   const [word, setWord] = useState<string>('');
   const [guessedLetters, setGuessedLetters] = useState<string[]>([]);
-  const [mistakes, setMistakes] = useState<number>(0);
-  const [message, setMessage] = useState<string>('');
+  const [incorrectGuesses, setIncorrectGuesses] = useState<number>(0);
+  const [gameOver, setGameOver] = useState<boolean>(false);
+  const [hasWon, setHasWon] = useState<boolean>(false);
+  const maxIncorrectGuesses = 6;
 
-  const startGame = () => {
-    const randomWord = words[Math.floor(Math.random() * words.length)];
-    setWord(randomWord);
+  useEffect(() => {
+    setWord(words[Math.floor(Math.random() * words.length)]);
     setGuessedLetters([]);
-    setMistakes(0);
-    setMessage('');
-  };
+    setIncorrectGuesses(0);
+    setGameOver(false);
+    setHasWon(false);
+  }, []);
 
-  const guessLetter = (letter: string) => {
-    if (guessedLetters.includes(letter) || mistakes >= 6) return;
+  useEffect(() => {
+    if (incorrectGuesses >= maxIncorrectGuesses) {
+      setGameOver(true);
+    }
+  }, [incorrectGuesses]);
+
+  useEffect(() => {
+    const allLettersGuessed = word.split('').every((letter) => guessedLetters.includes(letter));
+    if (allLettersGuessed) {
+      setHasWon(true);
+      setGameOver(true);
+      onWin(25);
+    }
+  }, [guessedLetters, word, onWin]);
+
+  const handleGuess = (letter: string) => {
+    if (guessedLetters.includes(letter) || gameOver) return;
 
     setGuessedLetters([...guessedLetters, letter]);
-
     if (!word.includes(letter)) {
-      setMistakes(mistakes + 1);
-      if (mistakes + 1 >= 6) {
-        setMessage(`Perdu ! Le mot était : ${word}.`);
-      }
-    } else {
-      if (word.split('').every(l => guessedLetters.includes(l) || l === letter)) {
-        setMessage('Félicitations ! Tu as gagné 30 CROQ Credits !');
-        onWin(30);
-      }
+      setIncorrectGuesses(incorrectGuesses + 1);
     }
+  };
+
+  const restartGame = () => {
+    setWord(words[Math.floor(Math.random() * words.length)]);
+    setGuessedLetters([]);
+    setIncorrectGuesses(0);
+    setGameOver(false);
+    setHasWon(false);
   };
 
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
+  const renderHangman = () => {
+    const stages = [
+      '  +---+\n  |   |\n      |\n      |\n      |\n      |\n=========',
+      '  +---+\n  |   |\n  O   |\n      |\n      |\n      |\n=========',
+      '  +---+\n  |   |\n  O   |\n  |   |\n      |\n      |\n=========',
+      '  +---+\n  |   |\n  O   |\n /|   |\n      |\n      |\n=========',
+      '  +---+\n  |   |\n  O   |\n /|\  |\n      |\n      |\n=========',
+      '  +---+\n  |   |\n  O   |\n /|\  |\n /    |\n      |\n=========',
+      '  +---+\n  |   |\n  O   |\n /|\  |\n / \  |\n      |\n=========',
+    ];
+    return <pre className="text-xs text-[var(--secondary)]">{stages[incorrectGuesses]}</pre>;
+  };
+
   return (
-    <Card title="Le Jeu du Pendu (Version Souris)" subtitle="Devine le mot avant que la souris ne soit pendue !">
+    <Card title="Le Jeu du Pendu (Version Souris)" subtitle="Devine le mot !">
       <div className="flex flex-col items-center gap-4">
-        <div className="flex gap-2 text-2xl font-bold">
+        {renderHangman()}
+        <div className="flex gap-2 flex-wrap justify-center">
           {word.split('').map((letter, index) => (
-            <span key={index} className="min-w-[24px] text-center">
+            <span key={index} className="text-2xl font-bold">
               {guessedLetters.includes(letter) ? letter : '_'}
             </span>
           ))}
         </div>
-
-        <div className="h-24 w-24 relative">
-          {/* Dessin du pendu */}
-          <svg viewBox="0 0 100 100" className="w-full h-full">
-            {/* Potence */}
-            <line x1="10" y1="90" x2="30" y2="90" stroke="black" strokeWidth="2" />
-            <line x1="20" y1="90" x2="20" y2="10" stroke="black" strokeWidth="2" />
-            <line x1="20" y1="10" x2="60" y2="10" stroke="black" strokeWidth="2" />
-            <line x1="60" y1="10" x2="60" y2="20" stroke="black" strokeWidth="2" />
-
-            {/* Tête */}
-            {mistakes >= 1 && <circle cx="60" cy="30" r="10" stroke="black" strokeWidth="2" fill="transparent" />}
-            {/* Corps */}
-            {mistakes >= 2 && <line x1="60" y1="40" x2="60" y2="60" stroke="black" strokeWidth="2" />}
-            {/* Bras gauche */}
-            {mistakes >= 3 && <line x1="60" y1="50" x2="50" y2="55" stroke="black" strokeWidth="2" />}
-            {/* Bras droit */}
-            {mistakes >= 4 && <line x1="60" y1="50" x2="70" y2="55" stroke="black" strokeWidth="2" />}
-            {/* Jambe gauche */}
-            {mistakes >= 5 && <line x1="60" y1="60" x2="50" y2="75" stroke="black" strokeWidth="2" />}
-            {/* Jambe droite */}
-            {mistakes >= 6 && <line x1="60" y1="60" x2="70" y2="75" stroke="black" strokeWidth="2" />}
-          </svg>
-        </div>
-
-        <div className="grid grid-cols-7 gap-1">
-          {alphabet.map(letter => (
+        <div className="flex gap-1 flex-wrap justify-center">
+          {alphabet.map((letter) => (
             <Button
               key={letter}
-              onClick={() => guessLetter(letter)}
-              disabled={guessedLetters.includes(letter) || mistakes >= 6}
-              size="sm"
+              onClick={() => handleGuess(letter)}
+              disabled={guessedLetters.includes(letter) || gameOver}
+              className="w-8 h-8 p-0"
             >
               {letter}
             </Button>
           ))}
         </div>
-
-        {message && <p className="text-center">{message}</p>}
-        <Button onClick={startGame} className="mt-2">
-          Nouveau mot
-        </Button>
+        {gameOver && (
+          <div className="mt-4 text-center">
+            {hasWon ? (
+              <p className="text-green-600 font-bold">Félicitations ! Tu as deviné le mot : {word}</p>
+            ) : (
+              <p className="text-red-600 font-bold">Désolé, tu as perdu ! Le mot était : {word}</p>
+            )}
+            <Button onClick={restartGame} className="mt-2">
+              Rejouer
+            </Button>
+          </div>
+        )}
       </div>
     </Card>
   );

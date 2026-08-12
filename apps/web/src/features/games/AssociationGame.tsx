@@ -2,89 +2,81 @@ import React, { useState } from 'react';
 import { Button, Card } from '../../components/ui';
 
 interface Association {
+  id: number;
   country: string;
   tradition: string;
 }
 
 const associations: Association[] = [
-  { country: 'France', tradition: 'La Petite Souris' },
-  { country: 'États-Unis', tradition: 'The Tooth Fairy' },
-  { country: 'Espagne', tradition: 'El Ratoncito Pérez' },
-  { country: 'Allemagne', tradition: 'La Zahnfee' },
-  { country: 'Italie', tradition: 'La Fatina dei Denti' },
-  { country: 'Japon', tradition: 'Shigatsu-san' },
+  { id: 1, country: 'France', tradition: 'La Petite Souris' },
+  { id: 2, country: 'États-Unis', tradition: 'The Tooth Fairy' },
+  { id: 3, country: 'Espagne', tradition: 'El Ratoncito Pérez' },
+  { id: 4, country: 'Allemagne', tradition: 'La Zahnfee' },
+  { id: 5, country: 'Japon', tradition: 'Shigatsu-san' },
 ];
 
-export const AssociationGame: React.FC<{ onWin: (reward: number) => void }> = ({ onWin }) => {
+interface AssociationGameProps {
+  onWin: (reward: number) => void;
+}
+
+export const AssociationGame: React.FC<AssociationGameProps> = ({ onWin }) => {
   const [currentPair, setCurrentPair] = useState<Association | null>(null);
   const [options, setOptions] = useState<string[]>([]);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [score, setScore] = useState<number>(0);
-  const [message, setMessage] = useState<string>('');
+  const [remainingAssociations, setRemainingAssociations] = useState<Association[]>([]);
 
-  const startGame = () => {
-    const randomIndex = Math.floor(Math.random() * associations.length);
-    const pair = associations[randomIndex];
-    setCurrentPair(pair);
-
-    const allTraditions = associations.map(a => a.tradition);
-    const correctOption = pair.tradition;
-    const shuffledOptions = [correctOption];
-
-    while (shuffledOptions.length < 3) {
-      const randomOption = allTraditions[Math.floor(Math.random() * allTraditions.length)];
-      if (!shuffledOptions.includes(randomOption)) {
-        shuffledOptions.push(randomOption);
-      }
+  useEffect(() => {
+    const shuffled = [...associations].sort(() => Math.random() - 0.5);
+    setRemainingAssociations(shuffled);
+    if (shuffled.length > 0) {
+      setCurrentPair(shuffled[0]);
+      const allTraditions = shuffled.map((a) => a.tradition);
+      const shuffledOptions = [...allTraditions].sort(() => Math.random() - 0.5);
+      setOptions(shuffledOptions.slice(0, 3));
     }
+  }, []);
 
-    setOptions(shuffledOptions.sort(() => Math.random() - 0.5));
-    setSelectedOption(null);
-    setMessage('');
-  };
-
-  const handleSelect = (option: string) => {
-    setSelectedOption(option);
+  const handleAnswer = (selectedTradition: string) => {
     if (!currentPair) return;
 
-    if (option === currentPair.tradition) {
-      setScore(score + 20);
-      setMessage('Bravo ! Tu as gagné 20 CROQ Credits !');
-      onWin(20);
+    if (selectedTradition === currentPair.tradition) {
+      setScore(score + 10);
+    }
+
+    const newRemaining = remainingAssociations.slice(1);
+    setRemainingAssociations(newRemaining);
+
+    if (newRemaining.length > 0) {
+      setCurrentPair(newRemaining[0]);
+      const allTraditions = associations.map((a) => a.tradition);
+      const shuffledOptions = [...allTraditions].sort(() => Math.random() - 0.5);
+      setOptions(shuffledOptions.slice(0, 3));
     } else {
-      setMessage(`Dommage ! La bonne réponse était : ${currentPair.tradition}`);
+      onWin(score);
     }
   };
 
   return (
-    <Card title="Le Jeu des Associations" subtitle="Associe le pays à sa tradition dentaire">
-      {!currentPair ? (
+    <Card title="Le Jeu des Associations" subtitle="Associe les pays à leurs traditions !">
+      {currentPair ? (
         <div className="flex flex-col items-center gap-4">
-          <Button onClick={startGame}>Commencer le jeu</Button>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          <p className="text-center font-bold">{currentPair.country}</p>
-          <p className="text-center text-sm">Quelle est sa tradition dentaire ?</p>
-          <div className="flex flex-col gap-2">
+          <p className="text-xl font-bold">{currentPair.country}</p>
+          <p>Quelle est la tradition de ce pays ?</p>
+          <div className="flex gap-2">
             {options.map((option, index) => (
-              <Button
-                key={index}
-                onClick={() => handleSelect(option)}
-                variant={selectedOption === option ? (option === currentPair.tradition ? 'accent' : 'secondary') : 'primary'}
-                disabled={selectedOption !== null}
-              >
+              <Button key={index} onClick={() => handleAnswer(option)}>
                 {option}
               </Button>
             ))}
           </div>
-          {message && <p className="text-center mt-2">{message}</p>}
-          <Button onClick={startGame} className="mt-4">
-            Nouvelle question
-          </Button>
+          <p>Score : {score}</p>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-4">
+          <p className="text-xl font-bold">Félicitations !</p>
+          <p>Tu as gagné {score} CROQ Credits !</p>
         </div>
       )}
-      {score > 0 && <p className="text-center mt-2">Score : {score} CROQ</p>}
     </Card>
   );
 };

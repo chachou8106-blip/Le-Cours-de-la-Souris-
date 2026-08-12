@@ -1,30 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card } from '../../components/ui';
 
-const mimeWords = [
-  'SOURIS', 'DENT', 'PIÈCE', 'CROQ', 'JOUER', 'PAYS', 'TRADITION', 'ENFANT', 'PETITE', 'OR'
-];
+const mimeWords = ['SOURIS', 'DENT', 'CROQ', 'JOUER', 'GAGNER', 'ENFANT', 'PARENT', 'TRADITION'];
 
-// Emojis pour représenter les mots (simulation)
-const emojiMap: Record<string, string> = {
-  SOURIS: '🐭',
-  DENT: '🦷',
-  PIÈCE: '🪙',
-  CROQ: '💰',
-  JOUER: '🎮',
-  PAYS: '🌍',
-  TRADITION: '🎭',
-  ENFANT: '👶',
-  PETITE: '👧',
-  OR: '🟡',
-};
+interface MimeGameProps {
+  onWin: (reward: number) => void;
+}
 
-export const MimeGame: React.FC<{ onWin: (reward: number) => void }> = ({ onWin }) => {
-  const [currentWord, setCurrentWord] = useState<string>('');
+export const MimeGame: React.FC<MimeGameProps> = ({ onWin }) => {
+  const [word, setWord] = useState<string>('');
   const [guessedWord, setGuessedWord] = useState<string>('');
-  const [message, setMessage] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<number>(30);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [hasWon, setHasWon] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -34,55 +22,56 @@ export const MimeGame: React.FC<{ onWin: (reward: number) => void }> = ({ onWin 
         setTimeLeft(timeLeft - 1);
       } else {
         setIsPlaying(false);
-        setMessage(`Temps écoulé ! Le mot était : ${currentWord}`);
+        if (guessedWord.toUpperCase() === word) {
+          setHasWon(true);
+          onWin(20);
+        }
       }
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [isPlaying, timeLeft, currentWord]);
+  }, [isPlaying, timeLeft, guessedWord, word, onWin]);
 
   const startGame = () => {
-    const randomIndex = Math.floor(Math.random() * mimeWords.length);
-    setCurrentWord(mimeWords[randomIndex]);
+    setWord(mimeWords[Math.floor(Math.random() * mimeWords.length)]);
     setGuessedWord('');
     setTimeLeft(30);
     setIsPlaying(true);
-    setMessage('');
+    setHasWon(false);
   };
 
-  const handleGuess = () => {
-    if (guessedWord.toUpperCase() === currentWord) {
-      setIsPlaying(false);
-      setMessage('Bravo ! Tu as gagné 40 CROQ Credits !');
-      onWin(40);
-    } else {
-      setMessage('Essaie encore !');
-    }
+  const handleGuessChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGuessedWord(e.target.value.toUpperCase());
   };
 
   return (
-    <Card title="Le Jeu des Mimes" subtitle={`Temps restant : ${timeLeft}s`}>
+    <Card title="Le Jeu des Mimes" subtitle="Devine le mot mimé !">
       {!isPlaying ? (
         <div className="flex flex-col items-center gap-4">
           <Button onClick={startGame}>Commencer le jeu</Button>
+          <p>Tu as 30 secondes pour deviner le mot.</p>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-4">
-          <div className="text-6xl mb-4">
-            {emojiMap[currentWord] || '❓'}
-          </div>
-          <p className="text-center mb-2">Devine le mot mimé :</p>
+          <p className="text-xl">Mot à deviner : <span className="font-bold text-[var(--primary)]">???</span></p>
+          <p>Temps restant : {timeLeft}s</p>
           <input
             type="text"
             value={guessedWord}
-            onChange={(e) => setGuessedWord(e.target.value)}
-            className="p-2 border border-gray-300 rounded-lg w-full"
-            placeholder="Ton guess"
+            onChange={handleGuessChange}
+            placeholder="Entrez votre réponse"
+            className="input"
           />
-          <Button onClick={handleGuess} className="w-full">
+          <Button onClick={() => {
+            if (guessedWord.toUpperCase() === word) {
+              setHasWon(true);
+              setIsPlaying(false);
+              onWin(20);
+            }
+          }}>
             Valider
           </Button>
-          {message && <p className="text-center">{message}</p>}
+          {hasWon && <p className="text-green-600 font-bold">Félicitations ! Le mot était bien {word}.</p>}
         </div>
       )}
     </Card>

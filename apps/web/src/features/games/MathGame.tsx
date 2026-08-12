@@ -5,66 +5,106 @@ interface MathQuestion {
   id: number;
   question: string;
   answer: number;
+  options: number[];
 }
 
-const questions: MathQuestion[] = [
-  { id: 1, question: 'Si 1 dent = 5€, combien pour 3 dents ?', answer: 15 },
-  { id: 2, question: 'Si la Petite Souris donne 2€ par dent, combien pour 4 dents ?', answer: 8 },
-  { id: 3, question: 'Un enfant a 20 dents. Si chaque dent vaut 3€, combien vaut son sourire ?', answer: 60 },
-  { id: 4, question: 'La Petite Souris donne 10€ pour 2 dents. Combien pour 5 dents ?', answer: 25 },
-  { id: 5, question: 'Si 1€ = 1.1$, combien de $ pour 5€ ?', answer: 5.5 },
+const mathQuestions: MathQuestion[] = [
+  {
+    id: 1,
+    question: "Si 1 dent = 5€, combien pour 3 dents ?",
+    answer: 15,
+    options: [10, 15, 20, 25],
+  },
+  {
+    id: 2,
+    question: "La Petite Souris laisse 2€ par dent. Combien pour 4 dents ?",
+    answer: 8,
+    options: [4, 6, 8, 10],
+  },
+  {
+    id: 3,
+    question: "Un enfant a 20 dents. S'il en perd la moitié, combien en perd-il ?",
+    answer: 10,
+    options: [5, 10, 15, 20],
+  },
+  {
+    id: 4,
+    question: "Si une dent vaut 3 CROQ Credits, combien valent 5 dents ?",
+    answer: 15,
+    options: [10, 12, 15, 18],
+  },
+  {
+    id: 5,
+    question: "La Petite Souris donne 10€ par dent. Combien pour 2 dents et demie ?",
+    answer: 25,
+    options: [20, 25, 30, 35],
+  },
 ];
 
-export const MathGame: React.FC<{ onWin: (reward: number) => void }> = ({ onWin }) => {
-  const [currentQuestion, setCurrentQuestion] = useState<MathQuestion | null>(null);
-  const [userAnswer, setUserAnswer] = useState<string>('');
-  const [message, setMessage] = useState<string>('');
-  const [score, setScore] = useState<number>(0);
+interface MathGameProps {
+  onWin: (reward: number) => void;
+}
 
-  const startGame = () => {
-    const randomIndex = Math.floor(Math.random() * questions.length);
-    setCurrentQuestion(questions[randomIndex]);
-    setUserAnswer('');
-    setMessage('');
+export const MathGame: React.FC<MathGameProps> = ({ onWin }) => {
+  const [currentQuestion, setCurrentQuestion] = useState<number>(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [score, setScore] = useState<number>(0);
+  const [isFinished, setIsFinished] = useState<boolean>(false);
+
+  const handleAnswer = (answer: number) => {
+    setSelectedAnswer(answer);
+    if (answer === mathQuestions[currentQuestion].answer) {
+      setScore(score + 10);
+    }
   };
 
-  const handleSubmit = () => {
-    if (!currentQuestion || userAnswer === '') return;
-
-    const answer = parseFloat(userAnswer);
-    if (answer === currentQuestion.answer) {
-      setScore(score + 30);
-      setMessage('Bravo ! Tu as gagné 30 CROQ Credits !');
-      onWin(30);
+  const nextQuestion = () => {
+    if (currentQuestion < mathQuestions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+      setSelectedAnswer(null);
     } else {
-      setMessage(`Dommage ! La bonne réponse était : ${currentQuestion.answer}`);
+      setIsFinished(true);
+      onWin(score);
     }
+  };
+
+  const restartGame = () => {
+    setCurrentQuestion(0);
+    setSelectedAnswer(null);
+    setScore(0);
+    setIsFinished(false);
   };
 
   return (
     <Card title="Le Jeu des Maths" subtitle="Résous les énigmes mathématiques !">
-      {!currentQuestion ? (
+      {isFinished ? (
         <div className="flex flex-col items-center gap-4">
-          <Button onClick={startGame}>Commencer le jeu</Button>
+          <h3 className="text-xl font-bold">Score : {score} / {mathQuestions.length}</h3>
+          <p>Tu as gagné {score * 10} CROQ Credits !</p>
+          <Button onClick={restartGame}>Recommencer</Button>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <p className="text-center font-bold">{currentQuestion.question}</p>
-          <input
-            type="number"
-            value={userAnswer}
-            onChange={(e) => setUserAnswer(e.target.value)}
-            className="p-2 border border-gray-300 rounded-lg"
-            placeholder="Ta réponse"
-          />
-          <Button onClick={handleSubmit}>Valider</Button>
-          {message && <p className="text-center mt-2">{message}</p>}
-          <Button onClick={startGame} className="mt-2">
-            Nouvelle question
-          </Button>
+          <h3 className="text-lg font-medium">{mathQuestions[currentQuestion].question}</h3>
+          <div className="flex flex-col gap-2">
+            {mathQuestions[currentQuestion].options.map((option, index) => (
+              <Button
+                key={index}
+                onClick={() => handleAnswer(option)}
+                variant={selectedAnswer === option ? (option === mathQuestions[currentQuestion].answer ? 'accent' : 'secondary') : 'primary'}
+                disabled={selectedAnswer !== null}
+              >
+                {option}
+              </Button>
+            ))}
+          </div>
+          {selectedAnswer !== null && (
+            <Button onClick={nextQuestion} className="mt-4">
+              {currentQuestion < mathQuestions.length - 1 ? 'Suivant' : 'Terminer'}
+            </Button>
+          )}
         </div>
       )}
-      {score > 0 && <p className="text-center mt-2">Score : {score} CROQ</p>}
     </Card>
   );
 };
