@@ -1,194 +1,294 @@
-// Ledger CROQ (Append-Only)
-// Ce fichier gère le ledger des événements CROQ (crédits virtuels).
-// Chaque événement est chaîné cryptographiquement pour garantir l'intégrité.
+/**
+ * Ledger CROQ - Gestion des événements CROQ (append-only)
+ * 
+ * Ce module gère le ledger des événements CROQ (crédits virtuels).
+ * Chaque événement est stocké de manière immuable et peut être vérifié via des preuves Merkle.
+ */
 
-import { D1Database } from '@cloudflare/workers-types';
 import { createHash } from 'crypto';
 
 // Types pour les événements du ledger
-export type CROQEventType = 'mint' | 'burn' | 'transfer' | 'reward' | 'stake' | 'unstake';
-
-export interface CROQEvent {
-  event_id: string;
+export interface CROQLedgerEvent {
+  eventId: string;
   sequence: number;
-  event_type: CROQEventType;
-  account_pseudonym: string; // Pseudonyme (hash de l'email ou ID utilisateur)
+  eventType: 'mint' | 'burn' | 'transfer' | 'reward' | 'purchase';
+  accountPseudonym: string; // Pseudonyme de l'utilisateur (pas de PII)
   amount: number;
-  reason_code: string;
-  related_entity?: string; // Ex: ID de rapport, ID de jeu, etc.
-  prev_hash: string;
-  event_hash: string;
-  batch_id?: string;
-  created_at: string;
+  reasonCode: string;
+  relatedEntity: string | null; // Ex: ID d'un rapport, ID d'une récompense
+  prevHash: string;
+  eventHash: string;
+  batchId: string | null;
+  createdAt: string;
 }
 
-// Fonction pour générer un hash SHA-256
-export const generateHash = (data: string): string => {
-  return createHash('sha256').update(data).digest('hex');
-};
+// Types pour les batches
+export interface CROQLedgerBatch {
+  batchId: string;
+  events: CROQLedgerEvent[];
+  rootHash: string;
+  createdAt: string;
+}
 
-// Fonction pour créer un nouvel événement
-export const createCROQEvent = (
-  db: D1Database,
-  event: Omit<CROQEvent, 'event_id' | 'sequence' | 'prev_hash' | 'event_hash' | 'created_at'>
-): Promise<CROQEvent> => {
-  return db.transaction(async (tx) => {
-    // 1. Récupérer le dernier événement pour obtenir le sequence et prev_hash
-    const lastEventQuery = 'SELECT sequence, event_hash FROM croq_ledger_events ORDER BY sequence DESC LIMIT 1';
-    const { results } = await tx.prepare(lastEventQuery).all();
-    const lastEvent = results[0] as { sequence: number; event_hash: string } | undefined;
+// Classe pour gérer le ledger
+export class CROQLedger {
+  private events: CROQLedgerEvent[];
+  private batches: CROQLedgerBatch[];
+  private sequenceCounter: number;
 
-    const sequence = lastEvent ? lastEvent.sequence + 1 : 1;
-    const prev_hash = lastEvent ? lastEvent.event_hash : 'genesis';
+  constructor() {
+    this.events = [];
+    this.batches = [];
+    this.sequenceCounter = 0;
+  }
 
-    // 2. Créer le hash de l'événement actuel
-    const eventData = JSON.stringify({
-      ...event,
-      sequence,
-      prev_hash,
-    });
-    const event_hash = generateHash(eventData);
+  /**
+   * Ajouter un événement au ledger
+   */
+  addEvent(
+    eventType: CROQLedgerEvent['eventType'],
+    accountPseudonym: string,
+    amount: number,
+    reasonCode: string,
+    relatedEntity: string | null = null,
+    batchId: string | null = null
+  ): CROQLedgerEvent {
+    this.sequenceCounter++;
 
-    // 3. Insérer l'événement dans la base
-    const insertQuery = `
-      INSERT INTO croq_ledger_events 
-      (event_id, sequence, event_type, account_pseudonym, amount, reason_code, related_entity, prev_hash, event_hash, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-    `;
-    const event_id = `event_${Date.now()}_${sequence}`;
-
-    await tx.prepare(insertQuery).bind(
-      event_id,
-      sequence,
-      event.event_type,
-      event.account_pseudonym,
-      event.amount,
-      event.reason_code,
-      event.related_entity || null,
-      prev_hash,
-      event_hash
-    ).run();
-
-    // 4. Retourner l'événement créé
-    return {
-      event_id,
-      sequence,
-      event_type: event.event_type,
-      account_pseudonym: event.account_pseudonym,
-      amount: event.amount,
-      reason_code: event.reason_code,
-      related_entity: event.related_entity,
-      prev_hash,
-      event_hash,
-      created_at: new Date().toISOString(),
+    const prevHash = this.events.length > 0 ? this.events[this.events.length - 1].eventHash : 'genesis';
+    const eventId = `event_${Date.now()}_${this.sequenceCounter}`;
+    
+    const event: CROQLedgerEvent = {
+      eventId,
+      sequence: this.sequenceCounter,
+      eventType,
+      accountPseudonym,
+      amount,
+      reasonCode,
+      relatedEntity,
+      prevHash,
+      eventHash: this.calculateEventHash(eventId, prevHash, accountPseudonym, amount, reasonCode, relatedEntity),
+      batchId,
+      createdAt: new Date().toISOString(),
     };
-  });
-};
 
-// Fonction pour vérifier l'intégrité du ledger
-export const verifyLedgerIntegrity = async (db: D1Database): Promise<boolean> => {
-  const query = 'SELECT * FROM croq_ledger_events ORDER BY sequence ASC';
-  const { results } = await db.prepare(query).all();
-  const events = results as CROQEvent[];
-
-  if (events.length === 0) return true; // Ledger vide = valide
-
-  // Vérifier que le premier événement a prev_hash = 'genesis'
-  if (events[0].prev_hash !== 'genesis') {
-    return false;
+    this.events.push(event);
+    return event;
   }
 
-  // Vérifier que chaque événement est bien chaîné
-  for (let i = 1; i < events.length; i++) {
-    const current = events[i];
-    const previous = events[i - 1];
+  /**
+   * Calculer le hash d'un événement
+   */
+  private calculateEventHash(
+    eventId: string,
+    prevHash: string,
+    accountPseudonym: string,
+    amount: number,
+    reasonCode: string,
+    relatedEntity: string | null
+  ): string {
+    const data = `${eventId}:${prevHash}:${accountPseudonym}:${amount}:${reasonCode}:${relatedEntity || ''}`;
+    return createHash('sha256').update(data).digest('hex');
+  }
 
-    // Vérifier que prev_hash correspond au hash de l'événement précédent
-    const expectedPrevHash = previous.event_hash;
-    if (current.prev_hash !== expectedPrevHash) {
-      return false;
+  /**
+   * Créer un batch d'événements
+   */
+  createBatch(events: CROQLedgerEvent[]): CROQLedgerBatch {
+    const batchId = `batch_${Date.now()}`;
+    const rootHash = this.calculateMerkleRoot(events.map((e) => e.eventHash));
+    
+    const batch: CROQLedgerBatch = {
+      batchId,
+      events,
+      rootHash,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.batches.push(batch);
+    return batch;
+  }
+
+  /**
+   * Calculer la racine Merkle pour une liste de hashs
+   */
+  calculateMerkleRoot(leafHashes: string[]): string {
+    if (leafHashes.length === 0) {
+      return createHash('sha256').update('').digest('hex');
     }
 
-    // Vérifier que le hash de l'événement actuel est valide
-    const eventData = JSON.stringify({
-      sequence: current.sequence,
-      event_type: current.event_type,
-      account_pseudonym: current.account_pseudonym,
-      amount: current.amount,
-      reason_code: current.reason_code,
-      related_entity: current.related_entity,
-      prev_hash: current.prev_hash,
-    });
-    const expectedHash = generateHash(eventData);
-    if (current.event_hash !== expectedHash) {
-      return false;
+    if (leafHashes.length === 1) {
+      return leafHashes[0];
     }
-  }
 
-  return true;
-};
-
-// Fonction pour obtenir le solde d'un compte
-export const getAccountBalance = async (db: D1Database, accountPseudonym: string): Promise<number> => {
-  const query = `
-    SELECT SUM(amount) as balance 
-    FROM croq_ledger_events 
-    WHERE account_pseudonym = ? 
-    AND event_type IN ('mint', 'reward', 'transfer')
-  `;
-  const { results } = await db.prepare(query).bind(accountPseudonym).all();
-  const balance = results[0]?.balance || 0;
-
-  const burnQuery = `
-    SELECT SUM(amount) as burned 
-    FROM croq_ledger_events 
-    WHERE account_pseudonym = ? 
-    AND event_type IN ('burn', 'transfer')
-  `;
-  const { results: burnResults } = await db.prepare(burnQuery).bind(accountPseudonym).all();
-  const burned = burnResults[0]?.burned || 0;
-
-  return balance - burned;
-};
-
-// Fonction pour obtenir l'historique d'un compte
-export const getAccountHistory = async (db: D1Database, accountPseudonym: string): Promise<CROQEvent[]> => {
-  const query = `
-    SELECT * FROM croq_ledger_events 
-    WHERE account_pseudonym = ? 
-    ORDER BY sequence DESC
-  `;
-  const { results } = await db.prepare(query).bind(accountPseudonym).all();
-  return results as CROQEvent[];
-};
-
-// Fonction pour créer un snapshot Merkle (simplifiée)
-export const createMerkleSnapshot = async (db: D1Database): Promise<{ rootHash: string; totalAmount: number; totalEvents: number }> => {
-  const query = 'SELECT * FROM croq_ledger_events ORDER BY sequence ASC';
-  const { results } = await db.prepare(query).all();
-  const events = results as CROQEvent[];
-
-  if (events.length === 0) {
-    return { rootHash: generateHash('empty'), totalAmount: 0, totalEvents: 0 };
-  }
-
-  // Calculer le total des montants (mint + reward) - (burn)
-  let totalAmount = 0;
-  for (const event of events) {
-    if (event.event_type === 'mint' || event.event_type === 'reward') {
-      totalAmount += event.amount;
-    } else if (event.event_type === 'burn') {
-      totalAmount -= event.amount;
+    let currentLevel = leafHashes;
+    
+    while (currentLevel.length > 1) {
+      const nextLevel: string[] = [];
+      
+      for (let i = 0; i < currentLevel.length; i += 2) {
+        const left = currentLevel[i];
+        const right = i + 1 < currentLevel.length ? currentLevel[i + 1] : currentLevel[i];
+        const combined = createHash('sha256').update(left + right).digest('hex');
+        nextLevel.push(combined);
+      }
+      
+      currentLevel = nextLevel;
     }
+
+    return currentLevel[0];
   }
 
-  // Créer un hash simple pour le snapshot (à remplacer par un vrai Merkle Tree)
-  const snapshotData = JSON.stringify({
-    events: events.map(e => e.event_hash),
-    totalAmount,
-    totalEvents: events.length,
-  });
-  const rootHash = generateHash(snapshotData);
+  /**
+   * Vérifier l'intégrité de la chaîne
+   */
+  verifyChainIntegrity(): boolean {
+    for (let i = 1; i < this.events.length; i++) {
+      const current = this.events[i];
+      const prev = this.events[i - 1];
+      
+      if (current.prevHash !== prev.eventHash) {
+        return false;
+      }
+      
+      const expectedHash = this.calculateEventHash(
+        current.eventId,
+        current.prevHash,
+        current.accountPseudonym,
+        current.amount,
+        current.reasonCode,
+        current.relatedEntity
+      );
+      
+      if (current.eventHash !== expectedHash) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
 
-  return { rootHash, totalAmount, totalEvents: events.length };
-};
+  /**
+   * Générer une preuve Merkle pour un événement
+   */
+  generateMerkleProof(eventId: string): { proof: string[]; index: number } | null {
+    const event = this.events.find((e) => e.eventId === eventId);
+    if (!event) return null;
+
+    const batch = this.batches.find((b) => b.batchId === event.batchId);
+    if (!batch) return null;
+
+    const leafIndex = batch.events.findIndex((e) => e.eventId === eventId);
+    if (leafIndex === -1) return null;
+
+    const leafHashes = batch.events.map((e) => e.eventHash);
+    const proof: string[] = [];
+    
+    let currentIndex = leafIndex;
+    let currentLevel = leafHashes;
+    
+    while (currentLevel.length > 1) {
+      const isRightNode = currentIndex % 2 === 1;
+      const siblingIndex = isRightNode ? currentIndex - 1 : currentIndex + 1;
+      
+      if (siblingIndex < currentLevel.length) {
+        proof.push(currentLevel[siblingIndex]);
+      } else {
+        proof.push(currentLevel[currentIndex]); // Dupliquer si pas de sibling
+      }
+      
+      currentIndex = Math.floor(currentIndex / 2);
+      currentLevel = this.getNextMerkleLevel(currentLevel);
+    }
+
+    return { proof, index: leafIndex };
+  }
+
+  /**
+   * Obtenir le niveau suivant dans l'arbre Merkle
+   */
+  private getNextMerkleLevel(level: string[]): string[] {
+    const nextLevel: string[] = [];
+    
+    for (let i = 0; i < level.length; i += 2) {
+      const left = level[i];
+      const right = i + 1 < level.length ? level[i + 1] : level[i];
+      const combined = createHash('sha256').update(left + right).digest('hex');
+      nextLevel.push(combined);
+    }
+    
+    return nextLevel;
+  }
+
+  /**
+   * Vérifier une preuve Merkle
+   */
+  verifyMerkleProof(
+    leafHash: string,
+    proof: string[],
+    rootHash: string
+  ): boolean {
+    let currentHash = leafHash;
+    
+    for (const siblingHash of proof) {
+      const combined = createHash('sha256').update(
+        currentHash < siblingHash ? currentHash + siblingHash : siblingHash + currentHash
+      ).digest('hex');
+      currentHash = combined;
+    }
+    
+    return currentHash === rootHash;
+  }
+
+  /**
+   * Obtenir tous les événements
+   */
+  getEvents(): CROQLedgerEvent[] {
+    return [...this.events];
+  }
+
+  /**
+   * Obtenir tous les batches
+   */
+  getBatches(): CROQLedgerBatch[] {
+    return [...this.batches];
+  }
+
+  /**
+   * Obtenir le solde d'un compte (pseudonyme)
+   */
+  getAccountBalance(accountPseudonym: string): number {
+    return this.events
+      .filter((e) => e.accountPseudonym === accountPseudonym)
+      .reduce((sum, event) => {
+        if (event.eventType === 'mint' || event.eventType === 'reward') {
+          return sum + event.amount;
+        } else if (event.eventType === 'burn' || event.eventType === 'purchase' || event.eventType === 'transfer') {
+          return sum - event.amount;
+        }
+        return sum;
+      }, 0);
+  }
+
+  /**
+   * Exporter le ledger au format JSON
+   */
+  exportLedger(): { events: CROQLedgerEvent[]; batches: CROQLedgerBatch[] } {
+    return {
+      events: this.events,
+      batches: this.batches,
+    };
+  }
+
+  /**
+   * Importer le ledger depuis un export JSON
+   */
+  importLedger(data: { events: CROQLedgerEvent[]; batches: CROQLedgerBatch[] }): void {
+    this.events = data.events;
+    this.batches = data.batches;
+    this.sequenceCounter = this.events.length > 0 ? Math.max(...this.events.map((e) => e.sequence)) : 0;
+  }
+}
+
+// Exporter une instance par défaut pour les tests
+export const croqLedger = new CROQLedger();

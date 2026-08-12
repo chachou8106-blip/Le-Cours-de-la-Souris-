@@ -1,97 +1,144 @@
-// Preuves Merkle pour le ledger CROQ
-// Ce fichier implémente un arbre de Merkle pour vérifier l'intégrité des snapshots du ledger.
+/**
+ * Preuves Merkle pour le ledger CROQ
+ * 
+ * Ce module fournit des utilitaires pour générer et vérifier des preuves Merkle.
+ */
 
 import { createHash } from 'crypto';
 
-// Fonction pour hasher une paire de nœuds
-export const hashPair = (a: string, b: string): string => {
-  return createHash('sha256').update(a + b).digest('hex');
-};
-
-// Fonction pour construire un arbre de Merkle
-export const buildMerkleTree = (leaves: string[]): { root: string; tree: string[][] } => {
+/**
+ * Générer une racine Merkle à partir d'une liste de feuilles
+ */
+export function generateMerkleRoot(leaves: string[]): string {
   if (leaves.length === 0) {
-    return { root: '', tree: [] };
+    return createHash('sha256').update('').digest('hex');
   }
 
-  let currentLevel = leaves.map(leaf => createHash('sha256').update(leaf).digest('hex'));
-  const tree: string[][] = [currentLevel];
+  if (leaves.length === 1) {
+    return leaves[0];
+  }
 
+  let currentLevel = leaves;
+  
   while (currentLevel.length > 1) {
     const nextLevel: string[] = [];
+    
     for (let i = 0; i < currentLevel.length; i += 2) {
       const left = currentLevel[i];
       const right = i + 1 < currentLevel.length ? currentLevel[i + 1] : currentLevel[i];
-      nextLevel.push(hashPair(left, right));
+      const combined = createHash('sha256').update(left + right).digest('hex');
+      nextLevel.push(combined);
     }
-    tree.push(nextLevel);
+    
     currentLevel = nextLevel;
   }
 
-  return { root: currentLevel[0], tree };
-};
+  return currentLevel[0];
+}
 
-// Fonction pour générer une preuve Merkle pour une feuille
-export const getMerkleProof = (leaves: string[], index: number): { proof: string[]; leaf: string } => {
-  if (index < 0 || index >= leaves.length) {
-    throw new Error('Index out of bounds');
+/**
+ * Générer une preuve Merkle pour une feuille donnée
+ */
+export function generateMerkleProof(
+  leaves: string[],
+  leafIndex: number
+): { proof: string[]; leaf: string } {
+  if (leafIndex < 0 || leafIndex >= leaves.length) {
+    throw new Error('Index de feuille invalide');
   }
 
-  const leaf = createHash('sha256').update(leaves[index]).digest('hex');
+  const leaf = leaves[leafIndex];
   const proof: string[] = [];
-  let currentIndex = index;
-  let currentLevel = leaves.map(l => createHash('sha256').update(l).digest('hex'));
-
+  
+  let currentIndex = leafIndex;
+  let currentLevel = leaves;
+  
   while (currentLevel.length > 1) {
     const isRightNode = currentIndex % 2 === 1;
     const siblingIndex = isRightNode ? currentIndex - 1 : currentIndex + 1;
-
+    
     if (siblingIndex < currentLevel.length) {
       proof.push(currentLevel[siblingIndex]);
     } else {
       proof.push(currentLevel[currentIndex]); // Dupliquer si pas de sibling
     }
-
+    
     currentIndex = Math.floor(currentIndex / 2);
-    const nextLevel: string[] = [];
-    for (let i = 0; i < currentLevel.length; i += 2) {
-      const left = currentLevel[i];
-      const right = i + 1 < currentLevel.length ? currentLevel[i + 1] : currentLevel[i];
-      nextLevel.push(hashPair(left, right));
-    }
-    currentLevel = nextLevel;
+    currentLevel = getNextMerkleLevel(currentLevel);
   }
 
   return { proof, leaf };
-};
+}
 
-// Fonction pour vérifier une preuve Merkle
-export const verifyMerkleProof = (
+/**
+ * Obtenir le niveau suivant dans l'arbre Merkle
+ */
+function getNextMerkleLevel(level: string[]): string[] {
+  const nextLevel: string[] = [];
+  
+  for (let i = 0; i < level.length; i += 2) {
+    const left = level[i];
+    const right = i + 1 < level.length ? level[i + 1] : level[i];
+    const combined = createHash('sha256').update(left + right).digest('hex');
+    nextLevel.push(combined);
+  }
+  
+  return nextLevel;
+}
+
+/**
+ * Vérifier une preuve Merkle
+ */
+export function verifyMerkleProof(
   leaf: string,
   proof: string[],
   root: string
-): boolean => {
+): boolean {
   let currentHash = leaf;
-
-  for (const sibling of proof) {
-    currentHash = hashPair(currentHash, sibling);
+  
+  for (const siblingHash of proof) {
+    const combined = createHash('sha256').update(
+      currentHash < siblingHash ? currentHash + siblingHash : siblingHash + currentHash
+    ).digest('hex');
+    currentHash = combined;
   }
-
+  
   return currentHash === root;
-};
+}
 
-// Fonction pour créer un snapshot Merkle du ledger
-export const createLedgerMerkleSnapshot = (events: { event_hash: string }[]): { root: string; tree: string[][] } => {
-  const leaves = events.map(e => e.event_hash);
-  return buildMerkleTree(leaves);
-};
+/**
+ * Créer un snapshot Merkle pour une liste de transactions
+ */
+export interface MerkleSnapshot {
+  snapshotId: string;
+  rootHash: string;
+  leafCount: number;
+  createdAt: string;
+  metadata?: Record<string, any>;
+}
 
-// Fonction pour vérifier l'appartenance d'un événement au ledger via Merkle
-export const verifyEventInLedger = (
-  eventHash: string,
-  proof: string[],
-  root: string
-): boolean => {
-  const leaf = createHash('sha256').update(eventHash).digest('hex');
-  return verifyMerkleProof(leaf, proof, root);
-};
+export function createMerkleSnapshot(
+  leaves: string[],
+  metadata?: Record<string, any>
+): MerkleSnapshot {
+  const rootHash = generateMerkleRoot(leaves);
+  
+  return {
+    snapshotId: `snapshot_${Date.now()}`,
+    rootHash,
+    leafCount: leaves.length,
+    createdAt: new Date().toISOString(),
+    metadata,
+  };
+}
+
+/**
+ * Vérifier l'intégrité d'un snapshot Merkle
+ */
+export function verifyMerkleSnapshot(
+  snapshot: MerkleSnapshot,
+  leaves: string[]
+): boolean {
+  const calculatedRoot = generateMerkleRoot(leaves);
+  return calculatedRoot === snapshot.rootHash && leaves.length === snapshot.leafCount;
+}
