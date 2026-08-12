@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Le Cours de la Souris</string>
+    <string name="title_activity_main">Le Cours de la Souris</string>
+    <string name="package_name">com.zencheztoi.coursdelasouris</string>
+</resources>

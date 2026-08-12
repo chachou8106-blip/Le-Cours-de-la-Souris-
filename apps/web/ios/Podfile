@@ -1,0 +1,7 @@
+platform :ios, '15.0'
+use_frameworks!
+
+target 'App' do
+  capacitor_pods
+  # Add your Pods here
+end

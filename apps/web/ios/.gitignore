@@ -1,0 +1,42 @@
+# iOS
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.pbxproj
+!default.pbxproj
+*.xcworkspace
+!default.xcworkspace
+
+# User settings
+*.suo
+*.userosscache
+*.sln.docstates
+
+# User interface state files
+*.userprefs
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleasePublic/
+x64/
+x86/
+
+# NuGet
+packages/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

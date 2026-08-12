@@ -1,0 +1,13 @@
+# Podfile for Capacitor iOS app
+platform :ios, '15.0'
+use_frameworks!
+
+target 'App' do
+  capacitor_pods
+  # Pods for Capacitor
+  pod 'Capacitor', '~> 5.0'
+  pod 'CapacitorApp', '~> 5.0'
+  pod 'CapacitorHaptics', '~> 5.0'
+  pod 'CapacitorKeyboard', '~> 5.0'
+  pod 'CapacitorStatusBar', '~> 5.0'
+end

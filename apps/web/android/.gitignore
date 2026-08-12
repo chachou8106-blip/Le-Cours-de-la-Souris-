@@ -1,0 +1,27 @@
+# Android
+*.iml
+.gradle
+/local.properties
+/.idea/
+build/
+out/
+
+# Keystore (ne jamais commiter !)
+*.jks
+*.keystore
+
+# Cache
+*.gradle
+*.jar
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
