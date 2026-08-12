@@ -40,7 +40,7 @@ jobs:
         id: deploy
       
       - name: Comment PR with Preview URL
-        uses: actions/github-script@v6
+        uses: actions/github-script@v9
         with:
           script: |
             const deployment = ${{ steps.deploy.outputs.deployment }};
