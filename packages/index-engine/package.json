@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "^3.22.0"
+    "@cours-de-la-souris/schemas": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.0.0",

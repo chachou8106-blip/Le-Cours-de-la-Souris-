@@ -1,154 +1,231 @@
-// Moteur de calcul de l'indice officiel (tarifs dentaires)
-// Ce fichier contient la logique pour agréger et analyser les tarifs officiels d'extraction dentaire.
+/**
+ * Moteur de calcul de l'indice officiel
+ * 
+ * Ce module gère les tarifs officiels des actes dentaires et calcule les indices associés.
+ * Les données proviennent de sources officielles (ministères, associations dentaires).
+ */
 
-import { OfficialDentalTariff } from '../../schemas/src/db/official-dental-tariffs';
-import { D1Database } from '@cloudflare/workers-types';
-
-// Interface pour les métriques officielles d'un pays
-export interface OfficialCountryMetrics {
+// Interface pour un tarif dentaire officiel
+export interface OfficialDentalTariff {
+  id: string;
   countryIso2: string;
-  countryName: string;
-  extractionCost: number;
+  procedureCode: string;
+  procedureName: string;
+  cost: number;
   currency: string;
   source: string;
+  sourceUrl: string;
   year: number;
-  isDemo: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Interface pour les métriques officielles d'un pays
+export interface CountryOfficialMetrics {
+  countryIso2: string;
+  countryName: string;
+  tariffs: OfficialDentalTariff[];
+  averageCost: number;
+  currency: string;
+  lastUpdated: string;
 }
 
 // Interface pour l'indice officiel mondial
-export interface OfficialGlobalIndex {
-  avgExtractionCost: number;
-  minExtractionCost: number;
-  maxExtractionCost: number;
+export interface OfficialIndex {
+  value: number;
   countriesCount: number;
+  averageCost: number;
   lastUpdated: string;
-  mostExpensiveCountry: OfficialCountryMetrics | null;
-  leastExpensiveCountry: OfficialCountryMetrics | null;
 }
 
-// Fonction pour calculer les métriques officielles d'un pays
-export const calculateOfficialCountryMetrics = (
-  tariff: OfficialDentalTariff
-): OfficialCountryMetrics => {
-  return {
-    countryIso2: tariff.country_iso2,
-    countryName: '', // À remplir avec le nom du pays depuis la table countries
-    extractionCost: tariff.extraction_cost,
-    currency: tariff.currency,
-    source: tariff.source,
-    year: tariff.year,
-    isDemo: tariff.is_demo,
-  };
-};
+// Données de démonstration pour les tarifs officiels
+const demoOfficialTariffs: OfficialDentalTariff[] = [
+  {
+    id: 'tariff_fr_001',
+    countryIso2: 'FR',
+    procedureCode: 'EXTR_SIMPLE',
+    procedureName: 'Extraction dentaire simple',
+    cost: 30,
+    currency: 'EUR',
+    source: 'Conseil National de l\'Ordre des Chirurgiens-Dentistes',
+    sourceUrl: 'https://www.ordres-cd.fr',
+    year: 2026,
+    isActive: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-08-01T00:00:00Z',
+  },
+  {
+    id: 'tariff_us_001',
+    countryIso2: 'US',
+    procedureCode: 'EXTR_SIMPLE',
+    procedureName: 'Simple tooth extraction',
+    cost: 150,
+    currency: 'USD',
+    source: 'American Dental Association',
+    sourceUrl: 'https://www.ada.org',
+    year: 2026,
+    isActive: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-08-01T00:00:00Z',
+  },
+  {
+    id: 'tariff_gb_001',
+    countryIso2: 'GB',
+    procedureCode: 'EXTR_SIMPLE',
+    procedureName: 'Simple extraction',
+    cost: 80,
+    currency: 'GBP',
+    source: 'NHS Dental Tariffs',
+    sourceUrl: 'https://www.nhs.uk',
+    year: 2026,
+    isActive: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-08-01T00:00:00Z',
+  },
+  {
+    id: 'tariff_de_001',
+    countryIso2: 'DE',
+    procedureCode: 'EXTR_SIMPLE',
+    procedureName: 'Einfache Zahnentfernung',
+    cost: 60,
+    currency: 'EUR',
+    source: 'Bundeszahnärztekammer',
+    sourceUrl: 'https://www.bzaek.de',
+    year: 2026,
+    isActive: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-08-01T00:00:00Z',
+  },
+];
 
-// Fonction pour calculer l'indice officiel mondial
-export const calculateOfficialGlobalIndex = (
+// Données pour les pays (simplifiées)
+const demoCountries = [
+  { iso2: 'FR', name: 'France' },
+  { iso2: 'US', name: 'États-Unis' },
+  { iso2: 'GB', name: 'Royaume-Uni' },
+  { iso2: 'DE', name: 'Allemagne' },
+];
+
+/**
+ * Calculer la moyenne des coûts pour un pays
+ */
+export function calculateAverageCost(tariffs: OfficialDentalTariff[]): number {
+  if (tariffs.length === 0) return 0;
+  return tariffs.reduce((sum, tariff) => sum + tariff.cost, 0) / tariffs.length;
+}
+
+/**
+ * Calculer les métriques officielles pour un pays
+ */
+export function calculateCountryOfficialMetrics(
+  countryIso2: string,
   tariffs: OfficialDentalTariff[]
-): OfficialGlobalIndex => {
-  if (tariffs.length === 0) {
-    return {
-      avgExtractionCost: 0,
-      minExtractionCost: 0,
-      maxExtractionCost: 0,
-      countriesCount: 0,
-      lastUpdated: new Date().toISOString(),
-      mostExpensiveCountry: null,
-      leastExpensiveCountry: null,
-    };
-  }
+): CountryOfficialMetrics | null {
+  const countryTariffs = tariffs.filter((t) => t.countryIso2 === countryIso2);
+  if (countryTariffs.length === 0) return null;
 
-  // Filtrer les tarifs non-demo
-  const validTariffs = tariffs.filter(t => !t.is_demo);
-
-  if (validTariffs.length === 0) {
-    return {
-      avgExtractionCost: 0,
-      minExtractionCost: 0,
-      maxExtractionCost: 0,
-      countriesCount: 0,
-      lastUpdated: new Date().toISOString(),
-      mostExpensiveCountry: null,
-      leastExpensiveCountry: null,
-    };
-  }
-
-  // Calculer les statistiques de base
-  const extractionCosts = validTariffs.map(t => t.extraction_cost);
-  const avgExtractionCost = extractionCosts.reduce((a, b) => a + b, 0) / extractionCosts.length;
-  const minExtractionCost = Math.min(...extractionCosts);
-  const maxExtractionCost = Math.max(...extractionCosts);
-
-  // Trouver les pays les plus chers et les moins chers
-  const mostExpensive = validTariffs.reduce((max, t) =>
-    t.extraction_cost > max.extraction_cost ? t : max
-  );
-  const leastExpensive = validTariffs.reduce((min, t) =>
-    t.extraction_cost < min.extraction_cost ? t : min
-  );
-
-  // Trouver la date de dernière mise à jour
+  const country = demoCountries.find((c) => c.iso2 === countryIso2);
+  const averageCost = calculateAverageCost(countryTariffs);
   const lastUpdated = new Date(
-    Math.max(...validTariffs.map(t => new Date(t.updated_at).getTime()))
+    Math.max(...countryTariffs.map((t) => new Date(t.updatedAt).getTime()))
   ).toISOString();
 
   return {
-    avgExtractionCost,
-    minExtractionCost,
-    maxExtractionCost,
-    countriesCount: validTariffs.length,
+    countryIso2,
+    countryName: country ? country.name : countryIso2,
+    tariffs: countryTariffs,
+    averageCost,
+    currency: countryTariffs[0].currency,
     lastUpdated,
-    mostExpensiveCountry: calculateOfficialCountryMetrics(mostExpensive),
-    leastExpensiveCountry: calculateOfficialCountryMetrics(leastExpensive),
   };
-};
+}
 
-// Fonction pour récupérer tous les tarifs officiels depuis la base de données
-export const getAllOfficialTariffs = async (db: D1Database): Promise<OfficialDentalTariff[]> => {
-  const query = 'SELECT * FROM official_dental_tariffs';
-  const { results } = await db.prepare(query).all();
-  return results as OfficialDentalTariff[];
-};
-
-// Fonction pour calculer l'indice officiel mondial complet
-export const calculateFullOfficialGlobalIndex = async (
-  db: D1Database
-): Promise<OfficialGlobalIndex> => {
-  const tariffs = await getAllOfficialTariffs(db);
-  return calculateOfficialGlobalIndex(tariffs);
-};
-
-// Fonction pour comparer les indices officiel et communautaire
-export const compareIndices = (
-  officialIndex: OfficialGlobalIndex,
-  communityIndex: {
-    value: number;
-    countriesCount: number;
-    totalReports: number;
+/**
+ * Calculer l'indice officiel mondial
+ */
+export function calculateOfficialIndex(
+  countryMetrics: CountryOfficialMetrics[]
+): OfficialIndex {
+  if (countryMetrics.length === 0) {
+    return {
+      value: 0,
+      countriesCount: 0,
+      averageCost: 0,
+      lastUpdated: new Date().toISOString(),
+    };
   }
-): {
-  ratio: number;
-  difference: number;
-  description: string;
-} => {
-  const ratio = communityIndex.value / officialIndex.avgExtractionCost;
-  const difference = officialIndex.avgExtractionCost - communityIndex.value;
 
-  let description = '';
-  if (ratio < 0.1) {
-    description = 'Le cours communautaire est très inférieur au coût officiel d\'extraction dentaire.';
-  } else if (ratio < 0.3) {
-    description = 'Le cours communautaire est inférieur au coût officiel, ce qui est normal (tradition vs. réalité économique).';
-  } else if (ratio < 0.5) {
-    description = 'Le cours communautaire représente environ la moitié du coût officiel.';
-  } else if (ratio < 0.8) {
-    description = 'Le cours communautaire est proche du coût officiel, ce qui est surprenant !';
-  } else {
-    description = 'Le cours communautaire dépasse le coût officiel, ce qui est très inhabituel.';
+  // Calculer la moyenne des coûts (en USD pour comparaison)
+  // Dans une implémentation réelle, on utiliserait les taux de change
+  const fxRates: Record<string, number> = {
+    EUR: 1.1, // 1 EUR = 1.1 USD
+    USD: 1.0,
+    GBP: 1.3, // 1 GBP = 1.3 USD
+  };
+
+  let totalCostInUSD = 0;
+  let totalCountries = 0;
+  let maxDate = new Date(0);
+
+  for (const cm of countryMetrics) {
+    const fxRate = fxRates[cm.currency] || 1;
+    totalCostInUSD += cm.averageCost / fxRate; // Convertir en USD
+    totalCountries++;
+    
+    const lastUpdatedDate = new Date(cm.lastUpdated);
+    if (lastUpdatedDate > maxDate) {
+      maxDate = lastUpdatedDate;
+    }
   }
+
+  const averageCost = totalCostInUSD / totalCountries;
 
   return {
-    ratio,
-    difference,
-    description,
+    value: averageCost,
+    countriesCount: totalCountries,
+    averageCost,
+    lastUpdated: maxDate.toISOString(),
   };
-};
+}
+
+/**
+ * Obtenir tous les tarifs officiels pour un pays
+ */
+export function getTariffsByCountry(
+  countryIso2: string,
+  tariffs: OfficialDentalTariff[] = demoOfficialTariffs
+): OfficialDentalTariff[] {
+  return tariffs.filter((t) => t.countryIso2 === countryIso2 && t.isActive);
+}
+
+/**
+ * Obtenir tous les pays avec des tarifs officiels
+ */
+export function getCountriesWithOfficialTariffs(
+  tariffs: OfficialDentalTariff[] = demoOfficialTariffs
+): string[] {
+  return [...new Set(tariffs.map((t) => t.countryIso2))];
+}
+
+/**
+ * Obtenir les métriques officielles pour tous les pays
+ */
+export function getAllCountryOfficialMetrics(
+  tariffs: OfficialDentalTariff[] = demoOfficialTariffs
+): CountryOfficialMetrics[] {
+  const countries = getCountriesWithOfficialTariffs(tariffs);
+  const metrics: CountryOfficialMetrics[] = [];
+
+  for (const countryIso2 of countries) {
+    const countryMetric = calculateCountryOfficialMetrics(countryIso2, tariffs);
+    if (countryMetric) {
+      metrics.push(countryMetric);
+    }
+  }
+
+  return metrics;
+}
+
+// Exporter les données de démonstration
+export { demoOfficialTariffs, demoCountries };
