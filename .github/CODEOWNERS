@@ -1,0 +1,21 @@
+# Code Owners pour Le Cours de la Souris
+# Voir https://docs.github.com/en/repositories/managing-your-repositorys-issues-and-pull-requests/customizing-your-repository/about-code-owners
+
+# Responsables par défaut
+* @chachou8106-blip
+
+# Responsables par dossier
+/apps/web @chachou8106-blip
+/apps/worker @chachou8106-blip
+/apps/admin @chachou8106-blip
+/packages/contracts @chachou8106-blip
+/packages/index-engine @chachou8106-blip
+/packages/ledger @chachou8106-blip
+/docs @chachou8106-blip
+.infra @chachou8106-blip
+
+# Responsables par type de fichier
+*.sol @chachou8106-blip
+*.sql @chachou8106-blip
+*.yml @chachou8106-blip
+*.yaml @chachou8106-blip
