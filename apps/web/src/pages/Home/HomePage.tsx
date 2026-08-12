@@ -59,37 +59,44 @@ export const HomePage: React.FC = () => {
         <Card title="🎁 Récompenses" subtitle="Boutique CROQ">
           <p>Utilisez vos CROQ Credits pour acheter des récompenses.</p>
           <Link to="/rewards" className="text-[var(--primary)] hover:underline mt-2 inline-block">
-            Voir la boutique →
+            Voir les récompenses →
           </Link>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <Card title="🛒 Boutique" subtitle="Acheter des articles">
+          <p>Dépensez vos CROQ Credits dans notre boutique.</p>
+          <Link to="/shop" className="text-[var(--primary)] hover:underline mt-2 inline-block">
+            Visiter la boutique →
+          </Link>
+        </Card>
+
         <Card title="🪙 CROQ Credits" subtitle="Récompenses et économie">
           <p>Découvrez comment gagner et utiliser des CROQ Credits.</p>
           <Link to="/croq" className="text-[var(--primary)] hover:underline mt-2 inline-block">
             En savoir plus →
           </Link>
         </Card>
-
-        <Card title="🤝 Partenariats" className="">
-          <p className="mb-2">Découvrez nos partenaires :</p>
-          <div className="flex flex-wrap gap-2">
-            <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
-              Amazon (zencheztoi-21)
-            </span>
-            <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
-              Colgate
-            </span>
-            <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
-              Oral-B
-            </span>
-            <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
-              Lego
-            </span>
-          </div>
-        </Card>
       </div>
+
+      <Card title="🤝 Partenariats" className="mb-8">
+        <p className="mb-2">Découvrez nos partenaires :</p>
+        <div className="flex flex-wrap gap-2">
+          <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
+            Amazon (zencheztoi-21)
+          </span>
+          <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
+            Colgate
+          </span>
+          <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
+            Oral-B
+          </span>
+          <span className="bg-[var(--light)] border border-[var(--primary)] px-3 py-1 rounded-full text-sm">
+            Lego
+          </span>
+        </div>
+      </Card>
 
       <Card title="⚠️ Avertissement" className="mb-8">
         <p className="text-sm">
@@ -108,6 +115,13 @@ export const HomePage: React.FC = () => {
             <li><strong>Cours Officiel</strong> : ~50€ (extraction dentaire chez un dentiste).</li>
             <li><strong>Cours Communautaire</strong> : ~5€ (montant laissé par la Petite Souris).</li>
           </ul>
+          <br />
+          <strong>Pourquoi cette différence ?</strong>
+          <p className="mt-2">
+            Le <strong>Cours Officiel</strong> reflète le coût réel d'un acte médical, 
+            tandis que le <strong>Cours Communautaire</strong> reflète une tradition familiale. 
+            Les deux sont complémentaires pour comprendre les réalités économiques et culturelles.
+          </p>
         </p>
       </Card>
     </div>
