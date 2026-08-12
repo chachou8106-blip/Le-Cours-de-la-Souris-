@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f7f3ec;
+  --primary: #0F6E56;
+  --text: #3a3a3a;
+  --light: #ffffff;
+  --secondary: #8B7D6B;
+  --accent: #FFD700;
+  --error: #ef4444;
+}
+
+body {
+  @apply bg-[var(--bg)] text-[var(--text)] font-sans;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply text-[var(--primary)] font-serif;
+}
+
+button {
+  @apply bg-[var(--primary)] text-[var(--light)] px-4 py-2 rounded-lg hover:bg-opacity-90 transition;
+}
+
+.card {
+  @apply bg-[var(--light)] border border-[var(--primary)] rounded-lg p-4 shadow-md;
+}
