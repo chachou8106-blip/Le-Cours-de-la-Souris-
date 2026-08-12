@@ -1,43 +1,17 @@
 import { Hono } from 'hono';
 import { Env } from '../bindings/d1';
+import { calculateCommunityIndex, calculateOfficialIndex, compareCommunityAndOfficialIndices } from '../handlers/index-engine';
 
 const indexRouter = new Hono<{ Bindings: Env }>();
 
-// Récupérer l'indice mondial
+// Récupérer l'indice communautaire mondial
 indexRouter.get('/world', async (c) => {
   try {
-    // Calculer l'indice mondial (simplifié pour l'exemple)
-    const query = `
-      SELECT 
-        AVG(amount) as global_avg,
-        COUNT(*) as total_reports,
-        COUNT(DISTINCT country_iso2) as countries_count
-      FROM family_payout_reports 
-      WHERE status = 'published'
-    `;
-    const { results } = await c.env.DB.prepare(query).all();
-
-    if (results.length === 0) {
-      return c.json(
-        {
-          success: false,
-          error: 'Aucune donnée disponible pour l\'indice mondial',
-          timestamp: new Date().toISOString(),
-        },
-        404
-      );
+    const result = await calculateCommunityIndex(c.env);
+    if (!result.success) {
+      return c.json(result, 500);
     }
-
-    return c.json({
-      success: true,
-      data: {
-        globalIndex: results[0].global_avg || 0,
-        totalReports: results[0].total_reports || 0,
-        countriesCount: results[0].countries_count || 0,
-        lastUpdated: new Date().toISOString(),
-      },
-      timestamp: new Date().toISOString(),
-    });
+    return c.json(result);
   } catch (error) {
     return c.json(
       {
@@ -50,7 +24,47 @@ indexRouter.get('/world', async (c) => {
   }
 });
 
-// Récupérer l'historique de l'indice
+// Récupérer l'indice officiel mondial
+indexRouter.get('/official', async (c) => {
+  try {
+    const result = await calculateOfficialIndex(c.env);
+    if (!result.success) {
+      return c.json(result, 500);
+    }
+    return c.json(result);
+  } catch (error) {
+    return c.json(
+      {
+        success: false,
+        error: 'Échec de la récupération de l\'indice officiel',
+        timestamp: new Date().toISOString(),
+      },
+      500
+    );
+  }
+});
+
+// Récupérer la comparaison entre les indices
+indexRouter.get('/comparison', async (c) => {
+  try {
+    const result = await compareCommunityAndOfficialIndices(c.env);
+    if (!result.success) {
+      return c.json(result, 500);
+    }
+    return c.json(result);
+  } catch (error) {
+    return c.json(
+      {
+        success: false,
+        error: 'Échec de la récupération de la comparaison',
+        timestamp: new Date().toISOString(),
+      },
+      500
+    );
+  }
+});
+
+// Récupérer l'historique de l'indice communautaire
 indexRouter.get('/history', async (c) => {
   try {
     const limit = parseInt(c.req.query('limit') || '12');
@@ -60,7 +74,7 @@ indexRouter.get('/history', async (c) => {
         AVG(amount) as avg_amount,
         COUNT(*) as reports_count
       FROM family_payout_reports 
-      WHERE status = 'published'
+      WHERE status = 'published' AND is_demo = FALSE
       GROUP BY DATE(created_at)
       ORDER BY date DESC
       LIMIT ?
