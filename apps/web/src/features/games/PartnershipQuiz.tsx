@@ -1,39 +1,57 @@
 import React, { useState } from 'react';
 import { Button, Card } from '../../components/ui';
 
-interface Question {
+interface PartnershipQuestion {
   id: number;
   question: string;
   options: string[];
   correctAnswer: number;
-  sponsor: string;
+  partner: string;
 }
 
-const questions: Question[] = [
+const partnershipQuestions: PartnershipQuestion[] = [
   {
     id: 1,
-    question: "Quel est le sponsor du jeu 'Devine le Montant' ?",
-    options: ["Colgate", "Oral-B", "Amazon", "Lego"],
-    correctAnswer: 2,
-    sponsor: "Amazon",
+    question: "Quel est le partenaire officiel pour les brosses à dents dans notre application ?",
+    options: ["Colgate", "Oral-B", "Sensodyne", "Signal"],
+    correctAnswer: 1,
+    partner: "Oral-B",
   },
   {
     id: 2,
-    question: "Quelle marque sponsorise le 'Quizz Dentaire' ?",
-    options: ["Colgate", "Oral-B", "Disney", "Pampers"],
-    correctAnswer: 0,
-    sponsor: "Colgate",
+    question: "Quel code d'affiliation Amazon utilisons-nous ?",
+    options: ["zencheztoi-20", "zencheztoi-21", "zencheztoi-22", "zencheztoi-23"],
+    correctAnswer: 1,
+    partner: "Amazon",
   },
   {
     id: 3,
-    question: "Quel partenaire propose des brosses à dents pour enfants ?",
-    options: ["Nike", "Oral-B", "Adidas", "Samsung"],
-    correctAnswer: 1,
-    sponsor: "Oral-B",
+    question: "Quel partenaire propose des jouets éducatifs pour les enfants ?",
+    options: ["Lego", "Playmobil", "Mattel", "Hasbro"],
+    correctAnswer: 0,
+    partner: "Lego",
+  },
+  {
+    id: 4,
+    question: "Quel est le sponsor du jeu 'La Roue de la Souris' ?",
+    options: ["Colgate", "Disney", "Amazon", "Oral-B"],
+    correctAnswer: 2,
+    partner: "Amazon",
+  },
+  {
+    id: 5,
+    question: "Quel partenaire nous aide à promouvoir l'hygiène bucco-dentaire ?",
+    options: ["Colgate", "Lego", "Amazon", "Disney"],
+    correctAnswer: 0,
+    partner: "Colgate",
   },
 ];
 
-export const PartnershipQuiz: React.FC<{ onWin: (reward: number) => void }> = ({ onWin }) => {
+interface PartnershipQuizProps {
+  onWin: (reward: number) => void;
+}
+
+export const PartnershipQuiz: React.FC<PartnershipQuizProps> = ({ onWin }) => {
   const [currentQuestion, setCurrentQuestion] = useState<number>(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [score, setScore] = useState<number>(0);
@@ -41,13 +59,13 @@ export const PartnershipQuiz: React.FC<{ onWin: (reward: number) => void }> = ({
 
   const handleAnswer = (index: number) => {
     setSelectedAnswer(index);
-    if (index === questions[currentQuestion].correctAnswer) {
-      setScore(score + 25);
+    if (index === partnershipQuestions[currentQuestion].correctAnswer) {
+      setScore(score + 15);
     }
   };
 
   const nextQuestion = () => {
-    if (currentQuestion < questions.length - 1) {
+    if (currentQuestion < partnershipQuestions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
       setSelectedAnswer(null);
     } else {
@@ -64,21 +82,22 @@ export const PartnershipQuiz: React.FC<{ onWin: (reward: number) => void }> = ({
   };
 
   return (
-    <Card title="Le Quiz des Partenariats" subtitle={`Sponsorisé par ${questions[currentQuestion]?.sponsor || 'nos partenaires'}`}>
+    <Card title="Le Quiz des Partenariats" subtitle="Teste tes connaissances sur nos partenaires !">
       {isFinished ? (
         <div className="flex flex-col items-center gap-4">
-          <h3 className="text-xl font-bold">Score : {score} CROQ</h3>
+          <h3 className="text-xl font-bold">Score : {score} / {partnershipQuestions.length}</h3>
+          <p>Tu as gagné {score * 15} CROQ Credits !</p>
           <Button onClick={restartGame}>Recommencer</Button>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <h3 className="text-lg font-medium">{questions[currentQuestion].question}</h3>
+          <h3 className="text-lg font-medium">{partnershipQuestions[currentQuestion].question}</h3>
           <div className="flex flex-col gap-2">
-            {questions[currentQuestion].options.map((option, index) => (
+            {partnershipQuestions[currentQuestion].options.map((option, index) => (
               <Button
                 key={index}
                 onClick={() => handleAnswer(index)}
-                variant={selectedAnswer === index ? (index === questions[currentQuestion].correctAnswer ? 'accent' : 'secondary') : 'primary'}
+                variant={selectedAnswer === index ? (index === partnershipQuestions[currentQuestion].correctAnswer ? 'accent' : 'secondary') : 'primary'}
                 disabled={selectedAnswer !== null}
               >
                 {option}
@@ -87,7 +106,7 @@ export const PartnershipQuiz: React.FC<{ onWin: (reward: number) => void }> = ({
           </div>
           {selectedAnswer !== null && (
             <Button onClick={nextQuestion} className="mt-4">
-              {currentQuestion < questions.length - 1 ? 'Suivant' : 'Terminer'}
+              {currentQuestion < partnershipQuestions.length - 1 ? 'Suivant' : 'Terminer'}
             </Button>
           )}
         </div>

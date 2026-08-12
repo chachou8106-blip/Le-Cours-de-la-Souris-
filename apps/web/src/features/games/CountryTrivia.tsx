@@ -1,85 +1,116 @@
 import React, { useState } from 'react';
 import { Button, Card } from '../../components/ui';
-import { useCountries } from '../../hooks/useCountries';
+
+interface TriviaQuestion {
+  id: number;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  country: string;
+}
+
+const triviaQuestions: TriviaQuestion[] = [
+  {
+    id: 1,
+    question: "Quel pays a la tradition du 'Ratoncito Pérez' ?",
+    options: ["Espagne", "France", "Mexique", "Italie"],
+    correctAnswer: 0,
+    country: "ES",
+  },
+  {
+    id: 2,
+    question: "Dans quel pays la Petite Souris laisse-t-elle le plus d'argent en moyenne ?",
+    options: ["États-Unis", "France", "Japon", "Allemagne"],
+    correctAnswer: 0,
+    country: "US",
+  },
+  {
+    id: 3,
+    question: "Quel pays utilise la livre sterling pour les montants de la Petite Souris ?",
+    options: ["Royaume-Uni", "Australie", "Canada", "Nouvelle-Zélande"],
+    correctAnswer: 0,
+    country: "GB",
+  },
+  {
+    id: 4,
+    question: "Quel est le nom de la Petite Souris au Japon ?",
+    options: ["Shigatsu-san", "Tooth Fairy", "Kodomo no Ha", "Nezumi-san"],
+    correctAnswer: 0,
+    country: "JP",
+  },
+  {
+    id: 5,
+    question: "Dans quel pays la tradition de la Petite Souris est-elle la plus ancienne ?",
+    options: ["Europe", "Asie", "Amérique", "Afrique"],
+    correctAnswer: 0,
+    country: "EU",
+  },
+];
 
 interface CountryTriviaProps {
   onWin: (reward: number) => void;
 }
 
 export const CountryTrivia: React.FC<CountryTriviaProps> = ({ onWin }) => {
-  const { countries } = useCountries();
-  const [currentCountry, setCurrentCountry] = useState<string | null>(null);
-  const [options, setOptions] = useState<string[]>([]);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState<number>(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [score, setScore] = useState<number>(0);
-  const [message, setMessage] = useState<string>('');
+  const [isFinished, setIsFinished] = useState<boolean>(false);
 
-  const startGame = () => {
-    if (countries.length === 0) return;
-
-    const randomIndex = Math.floor(Math.random() * countries.length);
-    const country = countries[randomIndex];
-    setCurrentCountry(country.iso2);
-
-    // Générer 3 options aléatoires (1 correcte, 2 incorrectes)
-    const allOptions = countries.map(c => c.name_fr);
-    const correctOption = country.name_fr;
-    const shuffledOptions = [correctOption];
-
-    while (shuffledOptions.length < 3) {
-      const randomOption = allOptions[Math.floor(Math.random() * allOptions.length)];
-      if (!shuffledOptions.includes(randomOption)) {
-        shuffledOptions.push(randomOption);
-      }
+  const handleAnswer = (index: number) => {
+    setSelectedAnswer(index);
+    if (index === triviaQuestions[currentQuestion].correctAnswer) {
+      setScore(score + 20);
     }
-
-    setOptions(shuffledOptions.sort(() => Math.random() - 0.5));
-    setSelectedOption(null);
-    setMessage('');
   };
 
-  const handleSelect = (option: string) => {
-    setSelectedOption(option);
-    const country = countries.find(c => c.iso2 === currentCountry);
-    if (!country) return;
-
-    if (option === country.name_fr) {
-      setScore(score + 20);
-      setMessage('Bravo ! Tu as gagné 20 CROQ Credits !');
-      onWin(20);
+  const nextQuestion = () => {
+    if (currentQuestion < triviaQuestions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+      setSelectedAnswer(null);
     } else {
-      setMessage(`Dommage ! La bonne réponse était : ${country.name_fr}`);
+      setIsFinished(true);
+      onWin(score);
     }
+  };
+
+  const restartGame = () => {
+    setCurrentQuestion(0);
+    setSelectedAnswer(null);
+    setScore(0);
+    setIsFinished(false);
   };
 
   return (
-    <Card title="Trivia des Pays" subtitle="Devine le pays à partir de sa tradition dentaire">
-      {!currentCountry ? (
+    <Card title="Trivia des Pays" subtitle="Teste tes connaissances géographiques !">
+      {isFinished ? (
         <div className="flex flex-col items-center gap-4">
-          <Button onClick={startGame}>Commencer le jeu</Button>
+          <h3 className="text-xl font-bold">Score : {score} points</h3>
+          <p>Tu as gagné {score} CROQ Credits !</p>
+          <Button onClick={restartGame}>Recommencer</Button>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <p className="text-center">Quel est ce pays ?</p>
+          <h3 className="text-lg font-medium">{triviaQuestions[currentQuestion].question}</h3>
           <div className="flex flex-col gap-2">
-            {options.map((option, index) => (
+            {triviaQuestions[currentQuestion].options.map((option, index) => (
               <Button
                 key={index}
-                onClick={() => handleSelect(option)}
-                variant={selectedOption === option ? (option === countries.find(c => c.iso2 === currentCountry)?.name_fr ? 'accent' : 'secondary') : 'primary'}
-                disabled={selectedOption !== null}
+                onClick={() => handleAnswer(index)}
+                variant={selectedAnswer === index ? (index === triviaQuestions[currentQuestion].correctAnswer ? 'accent' : 'secondary') : 'primary'}
+                disabled={selectedAnswer !== null}
               >
                 {option}
               </Button>
             ))}
           </div>
-          {message && <p className="text-center mt-2">{message}</p>}
-          <Button onClick={startGame} className="mt-4">
-            Nouvelle question
-          </Button>
+          {selectedAnswer !== null && (
+            <Button onClick={nextQuestion} className="mt-4">
+              {currentQuestion < triviaQuestions.length - 1 ? 'Suivant' : 'Terminer'}
+            </Button>
+          )}
         </div>
       )}
-      {score > 0 && <p className="text-center mt-2">Score : {score} CROQ</p>}
     </Card>
   );
 };
