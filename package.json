@@ -1,0 +1,32 @@
+{
+  "name": "cours-de-la-souris",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Le Cours de la Souris / The Tooth Fairy Exchange - Monorepo",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm -r dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "db:migrate": "pnpm --filter @cours-de-la-souris/infra-d1 run migrate",
+    "db:seed": "pnpm --filter @cours-de-la-souris/infra-d1 run seed",
+    "deploy:staging": "pnpm --filter @cours-de-la-souris/worker run deploy:staging",
+    "deploy:production": "pnpm --filter @cours-de-la-souris/worker run deploy:production",
+    "contracts:test": "pnpm --filter @cours-de-la-souris/contracts run test",
+    "assets:generate": "pnpm --filter @cours-de-la-souris/ui run assets:generate"
+  },
+  "devDependencies": {
+    "pnpm": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.0.0"
+}
